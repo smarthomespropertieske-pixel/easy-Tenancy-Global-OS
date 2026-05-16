@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://easy-tenancy-global-os.pages.dev/sitemap.xml
+
+# easyTenancy — The #1 Global Real Estate Operating System
+# https://easy-tenancy-global-os.pages.dev
