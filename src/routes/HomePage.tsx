@@ -44,6 +44,31 @@ function Hero() {
       <div className="inner" style={{ position: 'relative', zIndex: 2, width: '100%' }}>
         <div style={{ maxWidth: 820, margin: '0 auto', textAlign: 'center' }}>
 
+          {/* ── Global Dominance 2026 Banner ── */}
+          <motion.div
+            initial={{ opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            style={{ marginBottom: 20 }}
+          >
+            <a
+              href="/global-dominance"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 10,
+                padding: '8px 20px',
+                background: 'linear-gradient(135deg, rgba(26,109,181,0.15), rgba(42,157,110,0.12))',
+                border: '1px solid rgba(26,109,181,0.4)',
+                borderRadius: 999, fontSize: 12, fontWeight: 700,
+                color: '#2A9DE8', textDecoration: 'none',
+                backdropFilter: 'blur(8px)',
+              }}
+              onClick={() => trackEvent('banner_clicked', { label: 'global_dominance_2026' })}
+            >
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#2A9DE8', animation: 'pulse 2s infinite' }} />
+              🚀 Global Dominance 2026 — Holy Trinity Blueprint: Google · Salesforce · Meta
+              <span style={{ opacity: 0.6 }}>→</span>
+            </a>
+          </motion.div>
+
           {/* Deep-link activation badge */}
           <AnimatePresence>
             {params.demoTenantId && (

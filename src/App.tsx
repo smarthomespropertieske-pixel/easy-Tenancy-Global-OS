@@ -6,6 +6,8 @@ import Nav from './components/Nav'
 import HomePage from './routes/HomePage'
 import AppDemo from './routes/AppDemo'
 import PropertyDetail from './routes/PropertyDetail'
+import GlobalDominance from './routes/GlobalDominance'
+import PredictiveLifeOS from './routes/PredictiveLifeOS'
 
 export default function App() {
   const location = useLocation()
@@ -23,11 +25,13 @@ export default function App() {
       <div id="toast-container" />
       <Nav />
       <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/app/demo" element={<AppDemo />} />
-        <Route path="/org/:orgId/properties/:propId/:section" element={<PropertyDetail />} />
-        <Route path="/org/:orgId/ai-copilot" element={<AppDemo />} />
-        <Route path="*" element={<HomePage />} />
+        <Route path="/"                                            element={<HomePage />} />
+        <Route path="/app/demo"                                    element={<AppDemo />} />
+        <Route path="/global-dominance"                            element={<GlobalDominance />} />
+        <Route path="/predictive-os"                               element={<PredictiveLifeOS />} />
+        <Route path="/org/:orgId/properties/:propId/:section"      element={<PropertyDetail />} />
+        <Route path="/org/:orgId/ai-copilot"                       element={<AppDemo />} />
+        <Route path="*"                                            element={<HomePage />} />
       </Routes>
     </>
   )

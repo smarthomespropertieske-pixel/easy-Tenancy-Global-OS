@@ -19,13 +19,17 @@ export default function Nav() {
 
       <ul className="nav-links">
         {[
-          ['Platform', '#platform'],
-          ['AI Copilot', '#ai-copilot'],
-          ['Pricing', '#pricing'],
-          ['Markets', '#markets'],
+          ['Platform',         '#platform'],
+          ['AI Copilot',       '#ai-copilot'],
+          ['Pricing',          '#pricing'],
+          ['Global Dominance', '/global-dominance'],
+          ['Predictive OS',    '/predictive-os'],
         ].map(([label, href]) => (
           <li key={label}>
-            <a href={href} onClick={() => trackEvent('feature_clicked', { feature: label, location: 'nav' })}>
+            <a
+              href={href}
+              onClick={() => trackEvent('feature_clicked', { feature: label, location: 'nav' })}
+            >
               {label}
             </a>
           </li>
