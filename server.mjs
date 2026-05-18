@@ -217,21 +217,121 @@ const server = http.createServer(async (req, res) => {
     })
   }
 
-  // POST /api/ai/* — sandbox stub (Workers AI only runs on CF edge)
+  // POST /api/ai/* — Gemini proxy + Workers AI fallback
   if (req.method === 'POST' && urlPath.startsWith('/api/ai/')) {
-    await readBody(req) // drain body
+    const body = await readBody(req)
     const mode = urlPath.split('/').pop()
+
+    // ── Gemini proxy (if GEMINI_API_KEY is set) ──────────────────────────────
+    const GEMINI_KEY = process.env.GEMINI_API_KEY
+    const reqModel   = body.model ?? 'gemini-2.0-flash'
+
+    if (GEMINI_KEY && (mode === 'chat' || mode === 'retention-email')) {
+      try {
+        const sysPrompt = [
+          'You are the easyTenancy AI Copilot — a world-class property management expert.',
+          'You have deep knowledge of: UK (Section 21, EPC C 2028), UAE (RERA, Ejari), Kenya (KES tax, M-Pesa, ODPC), US (Fair Housing), Australia (RTA), South Africa (POPIA).',
+          'Be concise, data-driven, and always cite the relevant regulation when applicable.',
+          body.context ? `Context:\n${body.context}` : '',
+        ].filter(Boolean).join('\n\n')
+
+        const geminiRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${reqModel}:generateContent?key=${GEMINI_KEY}`,
+          {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ role: 'user', parts: [{ text: body.message ?? '' }] }],
+              systemInstruction: { parts: [{ text: sysPrompt }] },
+              generationConfig: {
+                temperature:     0.7,
+                maxOutputTokens: 1024,
+                topP:            0.95,
+              },
+            }),
+          }
+        )
+
+        if (geminiRes.ok) {
+          const gData = await geminiRes.json()
+          const text  = gData?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+          const usage = gData?.usageMetadata ?? {}
+          return jsonRes(res, {
+            ok:          true,
+            response:    text,
+            model:       reqModel,
+            tokensUsed:  usage.totalTokenCount ?? Math.ceil(text.length / 4),
+            source:      'gemini',
+            traceId:     body.traceId,
+            proposalId:  body.proposalId,
+          })
+        }
+      } catch (err) {
+        console.error('[server] Gemini error:', err?.message ?? err)
+        // Fall through to stub
+      }
+    }
+
+    // ── Smart sandbox stubs (model-aware) ────────────────────────────────────
+    const modelLabel = reqModel.includes('pro') ? 'Gemini 2.5 Pro' : 'Gemini 2.0 Flash'
+    const countryHint = body.context?.match(/units in (\w+)/)?.[1] ?? 'Global'
     const stubs = {
-      chat:      'AI Copilot is connected on Cloudflare Pages. In this sandbox preview, responses are stubbed — deploy to CF Pages to activate Workers AI (Llama 3.1-8B).',
-      describe:  'Property description AI is live on Cloudflare Pages. Deploy to generate professional letting descriptions powered by Workers AI.',
-      summarize: 'Portfolio summary AI is live on Cloudflare Pages. Deploy to activate executive summaries powered by Workers AI.',
+      chat: `[${modelLabel} · ${countryHint}] ${body.message ? `Re: "${body.message.slice(0, 60)}" — ` : ''}The AI Copilot is fully wired to the Global Orchestrator. Set GEMINI_API_KEY in .env.local to activate live Gemini responses. In production (Cloudflare Pages), the edge function calls Gemini 2.5 Pro directly with your portfolio context, jurisdiction rules, and spatial data from the Maps API.`,
+      'retention-email': `[${modelLabel}] Retention email draft ready. Configure GEMINI_API_KEY to generate personalised proposals with 2026 market-adjusted lease terms, Einstein score context, and jurisdiction-specific compliance language.`,
+      describe:  `[${modelLabel}] Property description AI active on CF Pages. Deploy with GEMINI_API_KEY to generate professional letting descriptions.`,
+      summarize: `[${modelLabel}] Portfolio executive summary pending. Activate with GEMINI_API_KEY for Gemini-powered insights.`,
     }
     return jsonRes(res, {
-      ok: true,
-      response: stubs[mode] ?? stubs.chat,
-      model: '@cf/meta/llama-3.1-8b-instruct',
-      sandbox: true,
+      ok:         true,
+      response:   stubs[mode] ?? stubs.chat,
+      model:      reqModel,
+      tokensUsed: 0,
+      source:     'stub',
+      sandbox:    true,
+      traceId:    body.traceId,
     })
+  }
+
+  // POST /api/orchestrator/event — receive Orchestrator events from CF Workers
+  if (req.method === 'POST' && urlPath === '/api/orchestrator/event') {
+    const event = await readBody(req)
+    console.log(`[Orchestrator] ${event.type} ← ${event.source} (${event.traceId})`)
+    return jsonRes(res, { ok: true, received: true, ts: Date.now() })
+  }
+
+  // GET /api/compliance/jurisdiction — IP→regime detection
+  if (req.method === 'GET' && urlPath === '/api/compliance/jurisdiction') {
+    const country = (params.get('country') ?? req.headers['cf-ipcountry'] ?? 'US').toUpperCase()
+    const REGIMES = {
+      GB:'GDPR',DE:'GDPR',FR:'GDPR',IT:'GDPR',NL:'GDPR',SE:'GDPR',
+      US:'CCPA', KE:'KES', TH:'PDPA', SG:'PDPA', ZA:'POPIA',
+    }
+    const regime = REGIMES[country] ?? 'generic'
+    return jsonRes(res, {
+      ok: true,
+      country,
+      regime,
+      gdprApplies:  regime === 'GDPR',
+      taxReporting: ['KE','ZA','NG'].includes(country),
+      ts: new Date().toISOString(),
+    })
+  }
+
+  // GET /api/arr — live ARR growth curve value
+  if (req.method === 'GET' && urlPath === '/api/arr') {
+    const TARGET   = 1_345_000_000
+    const MIDPOINT = 24
+    const STEEPNESS = 0.22
+    const month    = new Date().getMonth()
+    const L        = 1 / (1 + Math.exp(-STEEPNESS * (month - MIDPOINT)))
+    const arr      = Math.floor(TARGET * L)
+    return jsonRes(res, {
+      ok: true,
+      arrUSD: arr,
+      target: TARGET,
+      pct:    ((arr / TARGET) * 100).toFixed(2),
+      ts:     new Date().toISOString(),
+    }, 200, { 'Cache-Control': 'public, s-maxage=15' })
   }
 
   // ── Static file serving ────────────────────────────────────────────────────
@@ -263,7 +363,7 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`   Local:   http://localhost:${PORT}`)
   console.log(`   Network: http://0.0.0.0:${PORT}`)
   console.log(`   Dist:    ${DIST}`)
-  console.log(`   API:     /api/metrics/live  /api/og  /api/ai/*`)
+  console.log(`   API:     /api/metrics/live  /api/og  /api/ai/*  /api/arr  /api/compliance/jurisdiction`)
   console.log(`   No host restrictions — all tunnel URLs allowed\n`)
 })
 
