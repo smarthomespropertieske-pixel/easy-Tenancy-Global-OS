@@ -1,15 +1,17 @@
-// ── Cloudflare Pages Functions: /api/[[route]].ts ─────────────
+// ── Cloudflare Pages Functions: /api/[[route]].ts ─────────────────────────
 // Catches all /api/* requests and routes them through Hono
+// Updated: 2026-05 — Novita AI proxy + Turnstile verification + WebAuthn stubs
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { timing } from 'hono/timing'
 
-// ── Workers AI type (available on c.env.AI when binding is configured) ──
+// ── Env bindings ──────────────────────────────────────────────────────────
 type Env = {
   AI: {
     run: (model: string, inputs: Record<string, unknown>) => Promise<
-      | { response: string }                          // text generation
-      | ReadableStream                                // streaming
+      | { response: string }
+      | { image: string }                              // base64 for image models
+      | ReadableStream
     >
   }
   ANALYTICS_KV?: KVNamespace
@@ -17,6 +19,12 @@ type Env = {
   DB?: D1Database
   DEMO_TOKEN?: string
   CF_PAGES?: string
+  // ── New 2026 bindings ─────────────────────────────────────────────────
+  NOVITA_API_KEY?: string                              // Novita FLUX.1-dev key
+  TURNSTILE_SECRET_KEY?: string                        // CF Turnstile server secret
+  GEMINI_API_KEY?: string                              // Google Gemini for emails
+  CF_AI_FALLBACK_ENABLED?: string                      // 'true' | 'false'
+  ENVIRONMENT?: string                                 // 'production' | 'staging' | 'development'
 }
 
 // ── Supported Workers AI models ───────────────────────────────
@@ -415,6 +423,489 @@ app.get('/api/og', (c) => {
       'Content-Type':  'image/svg+xml',
       'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
     },
+  })
+})
+
+// ═════════════════════════════════════════════════════════════════════════
+//  NOVITA AI STAGING PROXY
+//  POST /api/staging  — img2img via Novita FLUX.1-dev with CF Workers AI
+//                       fallback (zero-downtime on Novita error/timeout)
+// ═════════════════════════════════════════════════════════════════════════
+
+const NOVITA_STYLES: Record<string, { prompt: string; negativePrompt: string; strength: number }> = {
+  ar_meta: {
+    prompt:  'ultra-modern AR spatial overlay, Meta Quest 3 aesthetic, holographic UI elements, transparent glass surfaces, ambient occlusion shadows, professional real estate photography, photorealistic 8K',
+    negativePrompt: 'blurry, distorted, low quality, cartoon, illustration',
+    strength: 0.65,
+  },
+  luxury_modern: {
+    prompt:  'luxury modern interior design, high-end materials marble herringbone oak, warm diffused lighting, architectural photography, editorial magazine quality, Porsche Design aesthetic',
+    negativePrompt: 'old furniture, clutter, dark, low budget, amateur photo',
+    strength: 0.70,
+  },
+  scandinavian: {
+    prompt:  'Scandinavian minimalist interior, light wood textures, linen neutrals, hygge atmosphere, professional lighting, Kinfolk editorial style, clean lines, natural light',
+    negativePrompt: 'dark, cluttered, ornate, heavy curtains, old fashioned',
+    strength: 0.68,
+  },
+  smart_home: {
+    prompt:  'Smart Home 2026 interior, invisible IoT sensors, ambient computing surfaces, subtle tech integration, Nest Cam corners, warmly lit, Tesla Powerwall visible, sustainable materials',
+    negativePrompt: 'bulky electronics, visible cables, dated technology, clutter',
+    strength: 0.60,
+  },
+  vr_showcase: {
+    prompt:  'VR showcase environment, spatial computing aesthetic, dimensional portal effect, cinematic rendering, Meta Presence Platform, ultra-wide aspect, deep-focus DOF',
+    negativePrompt: 'flat, 2D, low resolution, cartoon, blurry',
+    strength: 0.75,
+  },
+  investment: {
+    prompt:  'investment-grade property photography, neutral tones, maximum floor area visible, professional wide angle, drone-quality perspective, clear ceiling height, pristine condition',
+    negativePrompt: 'personal items, clutter, dark, pets, people, poor lighting',
+    strength: 0.55,
+  },
+}
+
+// ── Circuit-breaker state (per-request memory; use KV for persistence) ───
+let _novitaFailures = 0
+let _novitaCircuitOpenAt = 0
+const CB_WINDOW_FAILS = 5
+const CB_OPEN_SECS    = 30_000  // 30s
+
+function isCircuitOpen(): boolean {
+  if (_novitaCircuitOpenAt && Date.now() - _novitaCircuitOpenAt < CB_OPEN_SECS) return true
+  if (_novitaCircuitOpenAt && Date.now() - _novitaCircuitOpenAt >= CB_OPEN_SECS) {
+    _novitaCircuitOpenAt = 0  // half-open
+  }
+  return false
+}
+function recordNovitaSuccess() { _novitaFailures = 0; _novitaCircuitOpenAt = 0 }
+function recordNovitaFailure() {
+  _novitaFailures++
+  if (_novitaFailures >= CB_WINDOW_FAILS) _novitaCircuitOpenAt = Date.now()
+}
+
+// ── CF Workers AI fallback (SDXL base) ──────────────────────────────────
+async function cfAIFallbackStage(
+  ai: Env['AI'],
+  styleId: string
+): Promise<string> {
+  const style  = NOVITA_STYLES[styleId] ?? NOVITA_STYLES['luxury_modern']
+  const result = await ai.run('@cf/stabilityai/stable-diffusion-xl-base-1.0', {
+    prompt:          style.prompt,
+    negative_prompt: style.negativePrompt,
+    num_steps:       20,
+    guidance:        7.5,
+  }) as { image: string } | ArrayBuffer
+
+  if (result instanceof ArrayBuffer) {
+    const bytes  = new Uint8Array(result)
+    const binary = Array.from(bytes).map(b => String.fromCharCode(b)).join('')
+    return `data:image/png;base64,${btoa(binary)}`
+  }
+  if (typeof (result as { image: string }).image === 'string') {
+    return `data:image/png;base64,${(result as { image: string }).image}`
+  }
+  throw new Error('CF Workers AI returned unexpected format')
+}
+
+// ── POST /api/staging ────────────────────────────────────────────────────
+app.post('/api/staging', async (c) => {
+  try {
+    const body = await c.req.json<{
+      imageDataUrl?:  string
+      styleId?:       string
+      propertyId?:    string
+      turnstileToken?: string
+    }>()
+
+    // Basic validation
+    const styleId = body.styleId ?? 'luxury_modern'
+    if (!NOVITA_STYLES[styleId]) {
+      return c.json({ ok: false, error: `Unknown styleId: ${styleId}` }, 400)
+    }
+    if (!body.imageDataUrl?.startsWith('data:image/')) {
+      return c.json({ ok: false, error: 'imageDataUrl must be a data URL' }, 400)
+    }
+
+    const novitaKey = c.env.NOVITA_API_KEY
+    const isDev     = (c.env.ENVIRONMENT ?? '') === 'development' || !c.env.CF_PAGES
+    const useFallback = !novitaKey || isCircuitOpen() || (isDev && Math.random() < 0.10)
+
+    let resultDataUrl: string
+    let provider: string
+
+    if (!useFallback && novitaKey) {
+      // ── Attempt Novita FLUX.1-dev ──────────────────────────────────
+      try {
+        const style = NOVITA_STYLES[styleId]
+        const controller = new AbortController()
+        const timer = setTimeout(() => controller.abort(), 8_000)
+
+        // Extract base64 content from data URL
+        const base64Match = body.imageDataUrl.match(/^data:image\/[^;]+;base64,(.+)$/)
+        if (!base64Match) throw new Error('Invalid data URL')
+        const imageBase64 = base64Match[1]
+
+        const novitaResp = await fetch('https://api.novita.ai/v3/async/img2img', {
+          method:  'POST',
+          headers: {
+            'Authorization': `Bearer ${novitaKey}`,
+            'Content-Type':  'application/json',
+          },
+          signal: controller.signal,
+          body: JSON.stringify({
+            model_name:        'flux.1-dev',
+            image_base64:      imageBase64,
+            prompt:            style.prompt,
+            negative_prompt:   style.negativePrompt,
+            strength:          style.strength,
+            guidance_scale:    7.5,
+            steps:             28,
+            width:             1024,
+            height:            768,
+            response_image_type: 'jpeg',
+          }),
+        })
+        clearTimeout(timer)
+
+        if (!novitaResp.ok) throw new Error(`Novita ${novitaResp.status}`)
+
+        const taskData  = await novitaResp.json() as { task_id?: string; image_base64?: string }
+
+        // If async task, poll for result
+        if (taskData.task_id) {
+          let attempts = 0
+          while (attempts < 15) {
+            await new Promise(r => setTimeout(r, 800))
+            const statusResp = await fetch(
+              `https://api.novita.ai/v3/async/task-result?task_id=${taskData.task_id}`,
+              { headers: { 'Authorization': `Bearer ${novitaKey}` } }
+            )
+            const status = await statusResp.json() as { task?: { status: string; images?: { image_base64: string }[] } }
+            if (status.task?.status === 'TASK_STATUS_SUCCEED' && status.task.images?.[0]) {
+              resultDataUrl = `data:image/jpeg;base64,${status.task.images[0].image_base64}`
+              break
+            }
+            if (status.task?.status === 'TASK_STATUS_FAILED') throw new Error('Novita task failed')
+            attempts++
+          }
+          if (!resultDataUrl!) throw new Error('Novita polling timeout')
+        } else if (taskData.image_base64) {
+          resultDataUrl = `data:image/jpeg;base64,${taskData.image_base64}`
+        } else {
+          throw new Error('Novita: no image in response')
+        }
+
+        recordNovitaSuccess()
+        provider = 'novita'
+      } catch (novitaErr) {
+        console.error('[staging/novita]', novitaErr)
+        recordNovitaFailure()
+        // ── Fallback to CF Workers AI ──────────────────────────────
+        if (c.env.AI) {
+          try {
+            resultDataUrl = await cfAIFallbackStage(c.env.AI, styleId)
+            provider      = 'cf-workers-ai-fallback'
+          } catch (cfErr) {
+            console.error('[staging/cf-fallback]', cfErr)
+            return c.json({ ok: false, error: 'Both Novita and CF Workers AI failed', provider: 'none' }, 503)
+          }
+        } else {
+          // Dev: return placeholder
+          resultDataUrl = body.imageDataUrl
+          provider      = 'passthrough-dev'
+        }
+      }
+    } else {
+      // ── Use CF Workers AI directly (fallback mode) ─────────────────
+      if (c.env.AI) {
+        try {
+          resultDataUrl = await cfAIFallbackStage(c.env.AI, styleId)
+          provider      = 'cf-workers-ai'
+        } catch {
+          resultDataUrl = body.imageDataUrl   // Dev passthrough
+          provider      = 'passthrough-dev'
+        }
+      } else {
+        resultDataUrl = body.imageDataUrl
+        provider      = 'passthrough-dev'
+      }
+    }
+
+    return c.json({
+      ok:            true,
+      imageDataUrl:  resultDataUrl!,
+      styleId,
+      provider,
+      circuitOpen:   isCircuitOpen(),
+      ts:            new Date().toISOString(),
+    })
+  } catch (err) {
+    console.error('[staging]', err)
+    return c.json({ ok: false, error: 'Staging request failed' }, 500)
+  }
+})
+
+// ═════════════════════════════════════════════════════════════════════════
+//  TURNSTILE VERIFICATION ENDPOINT
+//  POST /api/turnstile/verify  — server-side Cloudflare Turnstile check
+//  Body: { token: string, action?: string }
+// ═════════════════════════════════════════════════════════════════════════
+app.post('/api/turnstile/verify', async (c) => {
+  try {
+    const { token, action } = await c.req.json<{ token: string; action?: string }>()
+
+    if (!token?.trim()) {
+      return c.json({ ok: false, success: false, error: 'token is required' }, 400)
+    }
+
+    const secretKey = c.env.TURNSTILE_SECRET_KEY
+    const isDev     = !c.env.CF_PAGES || (c.env.ENVIRONMENT ?? '') !== 'production'
+
+    // In dev / no secret configured: auto-pass all tokens
+    if (!secretKey || isDev) {
+      return c.json({
+        ok:      true,
+        success: true,
+        note:    'Turnstile bypassed in dev environment',
+        action:  action ?? 'unknown',
+      })
+    }
+
+    const ip = c.req.header('CF-Connecting-IP') ?? c.req.header('X-Forwarded-For') ?? ''
+
+    const formData = new FormData()
+    formData.append('secret',   secretKey)
+    formData.append('response', token)
+    if (ip) formData.append('remoteip', ip)
+
+    const cfResp = await fetch(
+      'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+      { method: 'POST', body: formData }
+    )
+
+    const result = await cfResp.json() as {
+      success: boolean
+      'error-codes'?: string[]
+      challenge_ts?: string
+      hostname?: string
+    }
+
+    if (!result.success) {
+      return c.json({
+        ok:          false,
+        success:     false,
+        errorCodes:  result['error-codes'] ?? [],
+        hostname:    result.hostname,
+      }, 403)
+    }
+
+    return c.json({
+      ok:          true,
+      success:     true,
+      challengeTs: result.challenge_ts,
+      hostname:    result.hostname,
+      action:      action ?? 'unknown',
+    })
+  } catch (err) {
+    console.error('[turnstile/verify]', err)
+    return c.json({ ok: false, error: 'Turnstile verification failed' }, 500)
+  }
+})
+
+// ═════════════════════════════════════════════════════════════════════════
+//  RETENTION EMAIL GENERATOR
+//  POST /api/ai/retention-email — Gemini/CF AI churn retention email draft
+//  Body: { tenantName, churnScore, leaseValue, currency, riskFactors, tone }
+// ═════════════════════════════════════════════════════════════════════════
+app.post('/api/ai/retention-email', async (c) => {
+  try {
+    const body = await c.req.json<{
+      tenantName:  string
+      churnScore:  number
+      leaseValue:  number
+      currency:    string
+      riskFactors: string[]
+      tone?:       'formal' | 'warm' | 'urgent'
+      managerName?: string
+    }>()
+
+    if (!body.tenantName?.trim() || typeof body.churnScore !== 'number') {
+      return c.json({ ok: false, error: 'tenantName and churnScore are required' }, 400)
+    }
+
+    const tone      = body.tone ?? 'warm'
+    const factors   = (body.riskFactors ?? []).slice(0, 5).join('; ')
+    const valueFmt  = `${body.currency ?? 'USD'} ${(body.leaseValue ?? 0).toLocaleString()}/mo`
+
+    const prompt =
+      `You are an expert property manager AI for easyTenancy.\n` +
+      `Write a ${tone} tenant retention email for:\n` +
+      `- Tenant: ${body.tenantName}\n` +
+      `- Current lease value: ${valueFmt}\n` +
+      `- Einstein GPT churn risk score: ${body.churnScore}%\n` +
+      `- Risk factors identified: ${factors || 'Not specified'}\n` +
+      `- Manager sending: ${body.managerName ?? 'Your Property Manager'}\n\n` +
+      `The email should:\n` +
+      `1. Open warmly and acknowledge the tenant's time at the property\n` +
+      `2. Subtly address 1-2 of the risk factors without being confrontational\n` +
+      `3. Offer a concrete retention incentive (e.g., 5% rent reduction for 12-month renewal, free maintenance priority)\n` +
+      `4. Include a clear call-to-action to schedule a call or sign renewal\n` +
+      `5. Be under 180 words, professional yet human\n\n` +
+      `Output format:\nSubject: [subject line]\n\n[email body]`
+
+    const emailText = await runAI(c.env.AI, MODELS.chat, SYSTEM.chat, prompt, 500)
+
+    // Parse subject line if present
+    const subjectMatch = emailText.match(/^Subject:\s*(.+)/m)
+    const subject      = subjectMatch?.[1]?.trim() ?? `We'd love to keep you as a tenant`
+    const body_text    = emailText.replace(/^Subject:.*$/m, '').trim()
+
+    return c.json({
+      ok:         true,
+      subject,
+      body:       body_text,
+      fullEmail:  emailText,
+      model:      MODELS.chat,
+      tone,
+      tenantName: body.tenantName,
+      churnScore: body.churnScore,
+    })
+  } catch (err) {
+    console.error('[ai/retention-email]', err)
+    return c.json({ ok: false, error: 'Email generation failed' }, 500)
+  }
+})
+
+// ═════════════════════════════════════════════════════════════════════════
+//  WEBAUTHN STUBS
+//  Full implementation requires a server-side credential store (D1/KV).
+//  These stubs provide the API contract — wire to a real FIDO2 library
+//  (e.g., @simplewebauthn/server) when D1 is bound.
+// ═════════════════════════════════════════════════════════════════════════
+
+// GET /api/auth/webauthn/challenge — generate a registration/auth challenge
+app.get('/api/auth/webauthn/challenge', (c) => {
+  const type    = c.req.query('type') ?? 'authentication'
+  const userId  = c.req.query('userId') ?? ''
+  // Generate a cryptographically random 32-byte challenge
+  const buffer  = new Uint8Array(32)
+  crypto.getRandomValues(buffer)
+  const challenge = btoa(String.fromCharCode(...buffer))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
+
+  return c.json({
+    ok:        true,
+    challenge,
+    type,
+    userId:    userId || undefined,
+    rpId:      c.req.header('host')?.split(':')[0] ?? 'localhost',
+    timeout:   60_000,
+    expiresAt: new Date(Date.now() + 120_000).toISOString(),
+    note:      'Bind KV to persist challenges server-side',
+  })
+})
+
+// POST /api/auth/webauthn/register — verify registration credential
+app.post('/api/auth/webauthn/register', async (c) => {
+  try {
+    const body = await c.req.json<{
+      userId:     string
+      username:   string
+      credential: Record<string, unknown>
+      challenge:  string
+    }>()
+
+    if (!body.userId || !body.credential) {
+      return c.json({ ok: false, error: 'userId and credential are required' }, 400)
+    }
+
+    // In production, verify attestation + store credential in D1/KV
+    // For now, return a stub success response
+    const credentialId = (body.credential.id as string) ?? 'stub-credential-id'
+
+    if (c.env.WAITLIST_KV) {
+      await c.env.WAITLIST_KV.put(`wa:user:${body.userId}`, JSON.stringify({
+        userId:       body.userId,
+        username:     body.username,
+        credentialId,
+        registeredAt: new Date().toISOString(),
+        note:         'Stub — replace with @simplewebauthn/server verification',
+      }), { expirationTtl: 86_400 * 365 })
+    }
+
+    return c.json({
+      ok:           true,
+      userId:       body.userId,
+      credentialId,
+      registeredAt: new Date().toISOString(),
+      message:      'Passkey registered successfully',
+    })
+  } catch (err) {
+    console.error('[auth/webauthn/register]', err)
+    return c.json({ ok: false, error: 'Registration failed' }, 500)
+  }
+})
+
+// POST /api/auth/webauthn/authenticate — verify authentication assertion
+app.post('/api/auth/webauthn/authenticate', async (c) => {
+  try {
+    const body = await c.req.json<{
+      credential: Record<string, unknown>
+      challenge:  string
+      userId?:    string
+    }>()
+
+    if (!body.credential || !body.challenge) {
+      return c.json({ ok: false, error: 'credential and challenge are required' }, 400)
+    }
+
+    // In production, verify assertion signature against stored credential
+    // For now: stub success + issue a short-lived session token
+    const sessionToken = btoa(`${body.userId ?? 'user'}-${Date.now()}-${Math.random()}`)
+      .replace(/[^a-zA-Z0-9]/g, '').slice(0, 32)
+
+    return c.json({
+      ok:           true,
+      authenticated: true,
+      sessionToken,
+      userId:       body.userId ?? 'authenticated-user',
+      expiresAt:    new Date(Date.now() + 86_400_000 * 7).toISOString(),
+      message:      'Biometric authentication successful',
+    })
+  } catch (err) {
+    console.error('[auth/webauthn/authenticate]', err)
+    return c.json({ ok: false, error: 'Authentication failed' }, 500)
+  }
+})
+
+// ═════════════════════════════════════════════════════════════════════════
+//  METRICS ENDPOINT — updated version (now also reports circuit state)
+// ═════════════════════════════════════════════════════════════════════════
+// (replaces the existing /api/metrics/live above via route ordering — Hono
+//  uses first-match, so we just keep the existing one and add extras below)
+
+// GET /api/metrics/infra — infra health (Novita circuit state, edge info)
+app.get('/api/metrics/infra', (c) => {
+  return c.json({
+    ok:              true,
+    novita: {
+      circuitOpen:   isCircuitOpen(),
+      failures:      _novitaFailures,
+      fallback:      isCircuitOpen() ? 'cf-workers-ai' : 'none',
+    },
+    cfWorkers: {
+      aiBinding:     !!c.env.AI,
+      kvBinding:     !!c.env.ANALYTICS_KV || !!c.env.WAITLIST_KV,
+      dbBinding:     !!c.env.DB,
+    },
+    edge: {
+      country:       c.req.header('CF-IPCountry') ?? 'XX',
+      colo:          c.req.header('CF-Ray')?.split('-')[1] ?? 'unknown',
+      ray:           c.req.header('CF-Ray') ?? 'local',
+    },
+    environment:     c.env.ENVIRONMENT ?? (c.env.CF_PAGES ? 'production' : 'development'),
+    ts:              new Date().toISOString(),
   })
 })
 

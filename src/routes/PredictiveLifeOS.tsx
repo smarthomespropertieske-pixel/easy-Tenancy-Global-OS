@@ -1,7 +1,30 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, Suspense, lazy } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSearchParams } from 'react-router-dom'
 import { BRAND, COUNTRY_ACCENT } from '../lib/tokens'
+
+// ── Lazily loaded feature panels (code-split) ─────────────────────────
+const SpatialStaging        = lazy(() => import('../components/SpatialStaging'))
+const ActionableIntelligence = lazy(() => import('../components/ActionableIntelligence'))
+
+function PanelLoader({ label = 'Loading…' }: { label?: string }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      minHeight: 220, gap: 12, color: '#8892A4', fontSize: 13,
+    }}>
+      <motion.div
+        animate={{ rotate: 360 }}
+        transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
+        style={{
+          width: 24, height: 24, borderRadius: '50%',
+          border: '2px solid rgba(42,157,232,0.2)', borderTopColor: '#2A9DE8',
+        }}
+      />
+      {label}
+    </div>
+  )
+}
 
 // ── Types ──────────────────────────────────────────────────────────
 interface AgentAction { id: string; agent: string; action: string; status: 'running' | 'done' | 'queued'; time: string; value: string }
@@ -164,10 +187,12 @@ export default function PredictiveLifeOS() {
   }, [])
 
   const TABS = [
-    { id: 'overview', label: 'Overview',       icon: '⚡' },
-    { id: 'crm',      label: 'CRM Intelligence',icon: '🎯' },
-    { id: 'spatial',  label: 'Spatial Graph',   icon: '🌐' },
-    { id: 'agents',   label: 'Agentforce Live', icon: '🤖' },
+    { id: 'overview',    label: 'Overview',            icon: '⚡' },
+    { id: 'crm',         label: 'CRM Intelligence',    icon: '🎯' },
+    { id: 'intelligence',label: 'Actionable Intel',    icon: '🧠' },
+    { id: 'spatial',     label: 'Spatial Graph',       icon: '🌐' },
+    { id: 'staging',     label: 'AI Staging',          icon: '🏠' },
+    { id: 'agents',      label: 'Agentforce Live',     icon: '🤖' },
   ] as const
 
   return (
@@ -323,6 +348,35 @@ export default function PredictiveLifeOS() {
                   ))}
                 </div>
               </div>
+            </motion.div>
+          )}
+
+          {/* ── ACTIONABLE INTELLIGENCE (Einstein GPT churn + retention) ── */}
+          {activeSection === 'intelligence' && (
+            <motion.div key="intelligence" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}>
+              <Suspense fallback={<PanelLoader label="Loading Actionable Intelligence…" />}>
+                <ActionableIntelligence filterSegment="all" maxCards={5} />
+              </Suspense>
+            </motion.div>
+          )}
+
+          {/* ── AI SPATIAL STAGING (Novita FLUX.1 img2img) ── */}
+          {activeSection === 'staging' && (
+            <motion.div key="staging" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}>
+              <Suspense fallback={<PanelLoader label="Loading Spatial Staging…" />}>
+                <SpatialStaging
+                  propertyData={{
+                    name:     'Nairobi Heights — Unit 4B',
+                    type:     'Apartment',
+                    bedrooms: 3,
+                    bathrooms: 2,
+                    sqm:      142,
+                    price:    'KES 185,000/mo',
+                    location: 'Westlands, Nairobi, Kenya',
+                    features: ['Smart Home Ready', 'City View', 'Secure Parking', 'Fibre Internet'],
+                  }}
+                />
+              </Suspense>
             </motion.div>
           )}
 
