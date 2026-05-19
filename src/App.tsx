@@ -30,10 +30,12 @@ import React, {
 import {
   Routes, Route, useLocation, useNavigate, Navigate,
 } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { trackPageView } from './lib/analytics'
 import { useScrollReveal, useScrollProgress } from './hooks'
 import Nav from './components/Nav'
+import SovereignMotionProvider from './components/SovereignMotionProvider'
+import SpatialNavigation from './components/SpatialNavigation'
 
 // ── Eagerly loaded (critical path) ───────────────────────────────────
 import HomePage          from './routes/HomePage'
@@ -50,19 +52,6 @@ const WebAuthnLogin   = lazy(() => import('./components/WebAuthnLogin'))
 const TurnstileWidget = lazy(() =>
   import('./components/TurnstileWidget').then(m => ({ default: m.default }))
 )
-
-// ── Page transition variants (Antigravity) ────────────────────────
-const pageVariants = {
-  initial:  { opacity: 0, y: 12, scale: 0.995 },
-  enter:    {
-    opacity: 1, y: 0, scale: 1,
-    transition: { duration: 0.40, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
-  },
-  exit:     {
-    opacity: 0, y: -6, scale: 0.998,
-    transition: { duration: 0.25, ease: [0.55, 0, 0.85, 0.05] as [number, number, number, number] },
-  },
-}
 
 // ── Loading skeleton ──────────────────────────────────────────────
 function PageLoader({ label = 'Loading…' }: { label?: string }) {
@@ -419,25 +408,6 @@ function SecurityDemoPage() {
   )
 }
 
-// ── Animated page wrapper ─────────────────────────────────────────
-function AnimatedPage({ children }: { children: React.ReactNode }) {
-  const location = useLocation()
-  return (
-    <AnimatePresence mode="wait" initial={false}>
-      <motion.div
-        key={location.pathname}
-        initial="initial"
-        animate="enter"
-        exit="exit"
-        variants={pageVariants}
-        style={{ minHeight: '100vh' }}
-      >
-        {children}
-      </motion.div>
-    </AnimatePresence>
-  )
-}
-
 // ── Main App ───────────────────────────────────────────────────────
 export default function App() {
   const location = useLocation()
@@ -468,15 +438,11 @@ export default function App() {
       {/* ── Navigation (always visible) ────────────────────────── */}
       <Nav />
 
-      {/* ── Route tree ─────────────────────────────────────────── */}
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.div
-          key={location.pathname}
-          initial="initial"
-          animate="enter"
-          exit="exit"
-          variants={pageVariants}
-        >
+      {/* ── Sovereign Command Ring (floating 360° nav wheel) ───── */}
+      <SpatialNavigation />
+
+      {/* ── Route tree (wrapped in SovereignMotionProvider) ─────── */}
+      <SovereignMotionProvider>
           <Suspense fallback={<PageLoader />}>
             <Routes location={location}>
               {/* ── Marketing / public routes ─────────────────── */}
@@ -546,8 +512,7 @@ export default function App() {
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
-        </motion.div>
-      </AnimatePresence>
+      </SovereignMotionProvider>
     </>
   )
 }

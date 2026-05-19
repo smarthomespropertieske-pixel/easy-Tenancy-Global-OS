@@ -1,12 +1,58 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "webapp",
+
+  // ── Project identity ──────────────────────────────────────────────
+  "name": "easy-tenancy-global-os",
   "compatibility_date": "2026-04-22",
+
+  // ── Pages build output ────────────────────────────────────────────
+  // Vite outputs to dist/; wrangler picks up _worker.js + _routes.json
   "pages_build_output_dir": "./dist",
+
+  // ── Compatibility flags ───────────────────────────────────────────
+  // nodejs_compat: enables Node.js APIs in Workers (fetch, crypto, etc.)
   "compatibility_flags": [
     "nodejs_compat"
   ],
+
+  // ── Workers AI binding ────────────────────────────────────────────
+  // CF Workers AI fallback when Novita FLUX.1 is unavailable
   "ai": {
     "binding": "AI"
   }
+
+  // ── Cloudflare D1 (SQLite) ─────────────────────────────────────────
+  // Uncomment and add database_id after running:
+  //   npx wrangler d1 create easy-tenancy-production
+  //
+  // "d1_databases": [
+  //   {
+  //     "binding": "DB",
+  //     "database_name": "easy-tenancy-production",
+  //     "database_id": "<your-database-id-from-wrangler-d1-create>"
+  //   }
+  // ],
+
+  // ── Cloudflare KV (session / cache) ───────────────────────────────
+  // Uncomment after running:
+  //   npx wrangler kv:namespace create EASY_TENANCY_KV
+  //
+  // "kv_namespaces": [
+  //   {
+  //     "binding": "KV",
+  //     "id": "<kv-id>",
+  //     "preview_id": "<kv-preview-id>"
+  //   }
+  // ],
+
+  // ── Cloudflare R2 (asset storage) ─────────────────────────────────
+  // Uncomment after running:
+  //   npx wrangler r2 bucket create easy-tenancy-assets
+  //
+  // "r2_buckets": [
+  //   {
+  //     "binding": "R2",
+  //     "bucket_name": "easy-tenancy-assets"
+  //   }
+  // ]
 }

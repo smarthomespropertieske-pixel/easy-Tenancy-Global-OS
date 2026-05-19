@@ -6,9 +6,11 @@
    Research: Novita FLUX.1 [dev] 12B params, ~0.95s avg latency
    Top p95: <2.1s Flux Schnell on H100 clusters (WaveSpeedAI 2026)
 ═══════════════════════════════════════════════════════════════ */
-import React, { useState, useRef, useCallback } from 'react'
+import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { BRAND } from '../lib/tokens'
+import { playDealSound } from './SovereignMotionProvider'
+import { Orchestrator } from '../lib/GlobalOrchestrator'
 
 // ── Style presets ─────────────────────────────────────────────────
 const STAGE_STYLES = [
@@ -89,8 +91,12 @@ export default function SpatialStaging({ propertyData = {} }: { propertyData?: R
   const [tourStatus, setTourStatus]       = useState<TourStatus>('idle')
   const [tourResult, setTourResult]       = useState<TourResult | null>(null)
   const [dragOver, setDragOver]           = useState(false)
-  const fileRef = useRef<HTMLInputElement>(null)
-  const abortRef = useRef<AbortController | null>(null)
+  const [gazeStyle, setGazeStyle]         = useState<string | null>(null)
+  const [gazeAvatar, setGazeAvatar]       = useState<string | null>(null)
+  const [hapticActive, setHapticActive]   = useState(false)
+  const fileRef    = useRef<HTMLInputElement>(null)
+  const abortRef   = useRef<AbortController | null>(null)
+  const gazeTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
   const handleFile = useCallback((file: File) => {
     if (!file.type.startsWith('image/')) return
@@ -108,6 +114,34 @@ export default function SpatialStaging({ propertyData = {} }: { propertyData?: R
     if (file) handleFile(file)
   }, [handleFile])
 
+  // ── Orion Gaze UX helpers ──────────────────────────────
+  const startGazeTimer = (id: string, onDwell: () => void, dwell = 500) => {
+    clearTimeout(gazeTimers.current[id])
+    gazeTimers.current[id] = setTimeout(onDwell, dwell)
+  }
+  const clearGazeTimer = (id: string) => {
+    clearTimeout(gazeTimers.current[id])
+    delete gazeTimers.current[id]
+  }
+
+  // ── Haptic shimmer (visual) + deal sound + Orchestrator event ──
+  const triggerDealCapture = useCallback(() => {
+    setHapticActive(true)
+    playDealSound()
+    Orchestrator.emit('SUCCESS_FEE_CAPTURED', {
+      tenantId: 'staging-demo',
+      fee: 4200,
+      currency: 'USD',
+      property: propertyData.name ?? 'Demo Property',
+    })
+    setTimeout(() => setHapticActive(false), 900)
+  }, [propertyData.name])
+
+  // ── Cleanup gaze timers on unmount ─────────────────────
+  useEffect(() => () => {
+    Object.values(gazeTimers.current).forEach(t => clearTimeout(t))
+  }, [])
+
   const runStaging = async () => {
     if (!uploadedImage) return
     abortRef.current?.abort()
@@ -119,6 +153,7 @@ export default function SpatialStaging({ propertyData = {} }: { propertyData?: R
       const result = await callNovitaStage(uploadedImage, selectedStyle, abortRef.current.signal)
       setStagingResult(result)
       setStagingStatus('done')
+      triggerDealCapture()
     } catch {
       setStagingStatus('error')
     }
@@ -138,7 +173,32 @@ export default function SpatialStaging({ propertyData = {} }: { propertyData?: R
   }
 
   return (
-    <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 24, overflow: 'hidden' }}>
+    <div style={{
+      background: 'rgba(255,255,255,0.03)',
+      border: '1px solid rgba(255,255,255,0.08)',
+      borderRadius: 24, overflow: 'hidden', position: 'relative',
+      boxShadow: hapticActive
+        ? '0 0 0 2px rgba(42,157,232,0.8), 0 0 60px rgba(42,157,232,0.4), 0 0 120px rgba(167,139,250,0.3)'
+        : undefined,
+      transition: 'box-shadow 0.15s ease',
+    }}>
+      {/* Haptic shimmer overlay — fires on deal capture */}
+      <AnimatePresence>
+        {hapticActive && (
+          <motion.div
+            key="haptic-shimmer"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 0.65, 0] }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.85, times: [0, 0.3, 1] }}
+            style={{
+              position: 'absolute', inset: 0, zIndex: 99, pointerEvents: 'none',
+              background: 'radial-gradient(ellipse at center, rgba(42,157,232,0.28) 0%, rgba(167,139,250,0.18) 40%, transparent 72%)',
+              borderRadius: 24,
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Header */}
       <div style={{ padding: '20px 24px 0', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
@@ -203,11 +263,26 @@ export default function SpatialStaging({ propertyData = {} }: { propertyData?: R
                     <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--mist)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>AR/VR Style Preset</div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                       {STAGE_STYLES.map(s => (
-                        <button key={s.id} onClick={() => setSelectedStyle(s)} style={{ padding: '10px 12px', borderRadius: 12, border: `1px solid ${selectedStyle.id === s.id ? BRAND.blue : 'rgba(255,255,255,0.08)'}`, background: selectedStyle.id === s.id ? `${BRAND.blue}20` : 'rgba(255,255,255,0.03)', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s' }}>
+                        <motion.button
+                          key={s.id}
+                          onClick={() => setSelectedStyle(s)}
+                          onMouseEnter={() => startGazeTimer(s.id, () => { setGazeStyle(s.id); setSelectedStyle(s) }, 500)}
+                          onMouseLeave={() => { clearGazeTimer(s.id); setGazeStyle(null) }}
+                          animate={gazeStyle === s.id ? { scale: 1.05, y: -3 } : { scale: 1, y: 0 }}
+                          transition={{ type: 'spring', stiffness: 340, damping: 22 }}
+                          style={{
+                            padding: '10px 12px', borderRadius: 12,
+                            border: `1px solid ${gazeStyle === s.id ? BRAND.blueLight : selectedStyle.id === s.id ? BRAND.blue : 'rgba(255,255,255,0.08)'}`,
+                            background: gazeStyle === s.id ? `${BRAND.blueLight}28` : selectedStyle.id === s.id ? `${BRAND.blue}20` : 'rgba(255,255,255,0.03)',
+                            cursor: 'pointer', textAlign: 'left' as const,
+                            boxShadow: gazeStyle === s.id ? `0 0 20px ${BRAND.blueLight}44` : 'none',
+                            transition: 'border-color 0.2s, background 0.2s, box-shadow 0.2s',
+                          }}
+                        >
                           <div style={{ fontSize: 16, marginBottom: 4 }}>{s.icon}</div>
-                          <div style={{ fontSize: 12, fontWeight: 700, color: selectedStyle.id === s.id ? BRAND.blueLight : 'var(--white)' }}>{s.label}</div>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: gazeStyle === s.id || selectedStyle.id === s.id ? BRAND.blueLight : 'var(--white)' }}>{s.label}</div>
                           <div style={{ fontSize: 10, color: 'var(--mist)' }}>{s.desc}</div>
-                        </button>
+                        </motion.button>
                       ))}
                     </div>
                   </div>
@@ -279,11 +354,26 @@ export default function SpatialStaging({ propertyData = {} }: { propertyData?: R
                     <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--mist)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>AI Avatar Agent</div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                       {TOUR_AVATARS.map(a => (
-                        <button key={a.id} onClick={() => setSelectedAvatar(a)} style={{ padding: '12px', borderRadius: 12, border: `1px solid ${selectedAvatar.id === a.id ? a.color : 'rgba(255,255,255,0.08)'}`, background: selectedAvatar.id === a.id ? `${a.color}18` : 'rgba(255,255,255,0.03)', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s' }}>
+                        <motion.button
+                          key={a.id}
+                          onClick={() => setSelectedAvatar(a)}
+                          onMouseEnter={() => startGazeTimer(`av-${a.id}`, () => { setGazeAvatar(a.id); setSelectedAvatar(a) }, 500)}
+                          onMouseLeave={() => { clearGazeTimer(`av-${a.id}`); setGazeAvatar(null) }}
+                          animate={gazeAvatar === a.id ? { scale: 1.06, y: -4 } : { scale: 1, y: 0 }}
+                          transition={{ type: 'spring', stiffness: 340, damping: 22 }}
+                          style={{
+                            padding: '12px', borderRadius: 12,
+                            border: `1px solid ${gazeAvatar === a.id ? a.color : selectedAvatar.id === a.id ? a.color : 'rgba(255,255,255,0.08)'}`,
+                            background: gazeAvatar === a.id ? `${a.color}28` : selectedAvatar.id === a.id ? `${a.color}18` : 'rgba(255,255,255,0.03)',
+                            cursor: 'pointer', textAlign: 'left' as const,
+                            boxShadow: gazeAvatar === a.id ? `0 0 24px ${a.color}55` : 'none',
+                            transition: 'border-color 0.2s, background 0.2s, box-shadow 0.2s',
+                          }}
+                        >
                           <div style={{ fontSize: 20, marginBottom: 4 }}>{a.icon}</div>
-                          <div style={{ fontSize: 12, fontWeight: 700, color: selectedAvatar.id === a.id ? a.color : 'var(--white)' }}>{a.name}</div>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: gazeAvatar === a.id || selectedAvatar.id === a.id ? a.color : 'var(--white)' }}>{a.name}</div>
                           <div style={{ fontSize: 10, color: 'var(--mist)' }}>{a.accent} accent</div>
-                        </button>
+                        </motion.button>
                       ))}
                     </div>
                   </div>
@@ -299,9 +389,15 @@ export default function SpatialStaging({ propertyData = {} }: { propertyData?: R
                     ))}
                   </div>
 
-                  <button onClick={runTour} disabled={tourStatus === 'generating'} style={{ padding: '14px', borderRadius: 14, border: 'none', background: `linear-gradient(135deg,${BRAND.teal},${BRAND.blueLight})`, color: '#fff', fontWeight: 800, fontSize: 14, cursor: tourStatus === 'generating' ? 'not-allowed' : 'pointer', opacity: tourStatus === 'generating' ? 0.6 : 1, transition: 'all 0.2s', fontFamily: 'var(--font-body)' }}>
-                    {tourStatus === 'generating' ? '🎬 Generating Tour Script...' : '🎬 Generate AI Video Tour'}
-                  </button>
+                  <motion.button
+                    onClick={() => { runTour(); triggerDealCapture() }}
+                    disabled={tourStatus === 'generating'}
+                    whileHover={tourStatus !== 'generating' ? { scale: 1.02, y: -2, boxShadow: `0 12px 36px ${BRAND.teal}55` } : {}}
+                    whileTap={{ scale: 0.97 }}
+                    style={{ padding: '14px', borderRadius: 14, border: 'none', background: `linear-gradient(135deg,${BRAND.teal},${BRAND.blueLight})`, color: '#fff', fontWeight: 800, fontSize: 14, cursor: tourStatus === 'generating' ? 'not-allowed' : 'pointer', opacity: tourStatus === 'generating' ? 0.6 : 1, transition: 'opacity 0.2s', fontFamily: 'var(--font-body)', width: '100%' }}
+                  >
+                    {tourStatus === 'generating' ? '🎬 Generating Tour Script...' : '🎬 Generate AI Video Tour ⚡'}
+                  </motion.button>
                 </div>
 
                 <div>
