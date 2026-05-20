@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, Suspense, lazy } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSearchParams } from 'react-router-dom'
 import { BRAND, COUNTRY_ACCENT } from '../lib/tokens'
+import SovereignPageHeader from '../components/SovereignPageHeader'
 
 // ── Lazily loaded feature panels (code-split) ─────────────────────────
 const SpatialStaging        = lazy(() => import('../components/SpatialStaging'))
@@ -198,25 +199,32 @@ export default function PredictiveLifeOS() {
   return (
     <main style={{ paddingTop: 64, background: 'var(--ink)', minHeight: '100vh', color: 'var(--white)' }}>
 
-      {/* Header */}
-      <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '24px 0' }}>
-        <div className="inner" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', animation: 'pulse 2s infinite' }} />
-              <span style={{ fontSize: 11, fontWeight: 700, color: '#10b981', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Live · Agentforce Running</span>
-            </div>
-            <h1 style={{ fontSize: 'clamp(22px,3vw,34px)', fontWeight: 900, fontFamily: 'var(--font-head)', letterSpacing: '-1px', margin: 0 }}>
-              Predictive Life OS
-              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--mist)', marginLeft: 12, letterSpacing: 0 }}>Powered by Google · Salesforce · Meta</span>
-            </h1>
-          </div>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            <a href="/global-dominance" className="btn-ghost" style={{ fontSize: 13, padding: '9px 20px' }}>📊 Blueprint</a>
-            <a href="/app/demo?tab=ai" className="btn-primary" style={{ fontSize: 13, padding: '9px 20px' }}>🤖 AI Copilot</a>
-          </div>
-        </div>
-      </div>
+      {/* ── Sovereign Page Header ── */}
+      <SovereignPageHeader
+        badge="Live · Agentforce Running"
+        badgeColor="#10b981"
+        title={
+          <>
+            Predictive Life OS
+            <br />
+            <span style={{ fontSize: 'clamp(16px,2vw,28px)', fontWeight: 600, color: 'var(--mist)', fontVariationSettings: "'wght' 600", letterSpacing: '-0.5px' }}>
+              Powered by Google · Salesforce · Meta
+            </span>
+          </>
+        }
+        subtitle="Autonomous AI agents run your entire portfolio — churn prediction, lease renewal, compliance audits, rent collection — without a single manual step."
+        stats={[
+          { label: 'Agents Active',   value: '7',    icon: '🤖', color: '#10b981' },
+          { label: 'Predictions/day', value: '48M',  icon: '🧠', color: accent },
+          { label: 'Leases Managed',  value: '2.4M', icon: '📄', color: BRAND.blueLight },
+          { label: 'Avg ROI',         value: '400×', icon: '📈', color: '#f59e0b' },
+        ]}
+        actions={[
+          { label: '📊 Blueprint', href: '/global-dominance' },
+          { label: '🤖 AI Copilot', href: '/app/demo', primary: true },
+        ]}
+        compact
+      />
 
       {/* Tab Bar */}
       <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>

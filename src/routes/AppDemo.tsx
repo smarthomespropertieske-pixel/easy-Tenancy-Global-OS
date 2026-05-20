@@ -4,6 +4,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useDeepLinkParams, useAIFeed, useAnimatedCounter, useIsMobile } from '../hooks'
 import AICopilot from '../components/AICopilot'
+import SovereignPageHeader from '../components/SovereignPageHeader'
 import { getDemoTenant, DEMO_TENANTS, type DemoTenant, type DemoProperty } from '../lib/demoData'
 import { trackEvent } from '../lib/analytics'
 import { type AIFeedEvent } from '../lib/wsStream'
@@ -642,41 +643,49 @@ export default function AppDemo() {
       paddingTop: 72,
       fontFamily: "'Inter', sans-serif"
     }}>
-      {/* ── Header bar ── */}
+      {/* ── Sovereign Page Header ── */}
+      <SovereignPageHeader
+        badge="Live Demo · Real Data · All 14 Components"
+        badgeColor="#39bff6"
+        title={
+          <>
+            <span style={{ color: 'var(--white)' }}>{tenant.name}</span>
+            {' '}
+            <span style={{ fontSize: '0.5em', fontWeight: 600, color: 'var(--mist)', verticalAlign: 'middle' }}>
+              {tenant.units} units · {tenant.country}
+            </span>
+          </>
+        }
+        subtitle={`${pct(tenant.occupancy)} occupancy · ${tenant.currency}${Math.round(tenant.monthlyRent / 1000)}K/mo revenue · ${tenant.properties.length} properties across ${tenant.country}`}
+        stats={[
+          { label: 'Total Units',    value: String(unitsCount),                    icon: '🏢', color: '#39bff6' },
+          { label: 'Monthly Rent',   value: `${tenant.currency}${rentCount}K`,     icon: '💰', color: '#10b981' },
+          { label: 'Occupancy',      value: pct(tenant.occupancy),                 icon: '📊', color: '#a78bfa' },
+          { label: 'NOI Margin',     value: `${noiCount}%`,                        icon: '📈', color: '#f59e0b' },
+        ]}
+        actions={[
+          { label: '← Back to Home', href: '/' },
+          { label: '🌍 Global Dominance', href: '/global-dominance' },
+          { label: '🤖 Predictive OS', href: '/predictive-os', primary: true },
+        ]}
+        compact
+      />
+      {/* Tenant selector sticky bar */}
       <div style={{
         position: 'sticky', top: 64, zIndex: 40,
-        background: 'rgba(10,15,30,0.92)',
+        background: 'rgba(10,15,30,0.95)',
         backdropFilter: 'blur(16px)',
         borderBottom: '1px solid rgba(255,255,255,0.06)',
-        padding: '12px 24px'
+        padding: '10px 24px',
       }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button
-              onClick={() => navigate('/')}
-              style={{ background: 'none', border: 'none', color: '#475569', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}
-            >
-              ← Back
-            </button>
-            <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.1)' }} />
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 15, fontWeight: 700, color: '#f1f5f9' }}>{tenant.name}</span>
-                <span style={{
-                  fontSize: 11, background: 'rgba(57,191,246,0.15)', color: '#39bff6',
-                  borderRadius: 4, padding: '2px 8px', border: '1px solid rgba(57,191,246,0.3)'
-                }}>Demo Mode</span>
-                {params.demoTenantId && (
-                  <span style={{
-                    fontSize: 11, background: 'rgba(167,139,250,0.15)', color: '#a78bfa',
-                    borderRadius: 4, padding: '2px 8px', border: '1px solid rgba(167,139,250,0.3)'
-                  }}>Deep-linked</span>
-                )}
-              </div>
-              <div style={{ fontSize: 12, color: '#475569', marginTop: 2 }}>
-                {tenant.units} units · {tenant.country} · {pct(tenant.occupancy)} occupancy
-              </div>
-            </div>
+        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#10b981', animation: 'pulse 2s infinite' }} />
+            <span style={{ fontSize: 12, color: '#64748b' }}>Viewing portfolio:</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#f1f5f9' }}>{tenant.name}</span>
+            {params.demoTenantId && (
+              <span style={{ fontSize: 10, background: 'rgba(167,139,250,0.15)', color: '#a78bfa', borderRadius: 4, padding: '2px 8px', border: '1px solid rgba(167,139,250,0.3)' }}>Deep-linked</span>
+            )}
           </div>
           <TenantSelector current={tenantId} onChange={setTenantId} />
         </div>

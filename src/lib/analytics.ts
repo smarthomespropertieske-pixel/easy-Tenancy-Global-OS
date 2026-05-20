@@ -18,6 +18,10 @@ type EventName =
   | 'section_navigated'
   | 'notice_generated'
   | 'demo_cta_clicked'
+  | 'mobile_nav_clicked'
+  | 'hero_widget_launched'
+  | 'success_fee_demo'
+  | 'copilot_used'
 
 interface EventPayload {
   [key: string]: string | number | boolean | undefined

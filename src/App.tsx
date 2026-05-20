@@ -36,6 +36,7 @@ import { useScrollReveal, useScrollProgress } from './hooks'
 import Nav from './components/Nav'
 import SovereignMotionProvider from './components/SovereignMotionProvider'
 import SpatialNavigation from './components/SpatialNavigation'
+import SovereignPageHeader from './components/SovereignPageHeader'
 
 // ── Eagerly loaded (critical path) ───────────────────────────────────
 import HomePage          from './routes/HomePage'
@@ -123,16 +124,46 @@ function NotFound() {
 // ── SpatialStaging standalone page wrapper ────────────────────────
 function SpatialStagingPage() {
   const demoProperty = {
-    name:     'Luxury Penthouse — London W1',
-    type:     'Penthouse',
-    bedrooms: 3, bathrooms: 2, sqm: 185,
-    price:    '£8,500/mo',
-    location: 'Mayfair, London, UK',
-    features: ['Smart Home Integration', 'Terrace with City Views', 'Private Lift', 'Concierge Service'],
+    name:       'Luxury Penthouse — London W1',
+    type:       'Penthouse',
+    bedrooms:   '3', bathrooms: '2', sqm: '185',
+    price:      '£8,500/mo',
+    location:   'Mayfair, London, UK',
+    yield:      '8.2%',
+    compliance: '97/100',
+    leads:      '12',
+    growth:     '14%',
+    features:   'Smart Home · Terrace · Private Lift · Concierge',
   }
   return (
-    <div style={{ minHeight: '100vh', background: '#0A0D14', paddingTop: 80 }}>
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '40px clamp(18px,5vw,64px)' }}>
+    <div style={{ minHeight: '100vh', background: '#0A0D14', paddingTop: 64 }}>
+      <SovereignPageHeader
+        badge="Novita AI FLUX.1 · 12B Params · ~1.4s Latency"
+        badgeColor="#a78bfa"
+        title={
+          <>
+            <span style={{ color: 'var(--white)' }}>AI Spatial Staging</span>
+            {' '}
+            <span style={{ background: 'linear-gradient(135deg,#a78bfa,#39bff6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+              Studio
+            </span>
+          </>
+        }
+        subtitle="Transform any property photo into a photorealistic staged interior using FLUX.1-dev 12B. Generate AI avatar video tours with Einstein GPT scripts — zero manual effort."
+        stats={[
+          { label: 'AI Model',     value: 'FLUX.1',   icon: '🎨', color: '#a78bfa' },
+          { label: 'Avg Latency',  value: '~1.4s',    icon: '⚡',     color: '#f59e0b' },
+          { label: 'Style Presets',value: '6',        icon: '✨',     color: '#39bff6' },
+          { label: 'AI Avatars',   value: '4',        icon: '🎬',    color: '#10b981' },
+        ]}
+        actions={[
+          { label: '← Back', href: '/' },
+          { label: '🌍 Global OS', href: '/global-dominance' },
+          { label: '🤖 AI Copilot', href: '/app/demo', primary: true },
+        ]}
+        compact
+      />
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '32px clamp(18px,5vw,64px) 80px' }}>
         <SpatialStaging propertyData={demoProperty} />
       </div>
     </div>
@@ -167,35 +198,33 @@ function SecurityDemoPage() {
   }, [])
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0A0D14', paddingTop: 80 }}>
-      <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px clamp(18px,5vw,64px)' }}>
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          style={{ marginBottom: 40, textAlign: 'center' }}
-        >
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 16,
-            padding: '5px 16px', borderRadius: 20,
-            background: 'rgba(26,109,181,0.1)', border: '1px solid rgba(26,109,181,0.25)',
-            fontSize: 12, fontWeight: 700, color: '#2A9DE8',
-            textTransform: 'uppercase', letterSpacing: '0.1em',
-          }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#2A9DE8', display: 'inline-block' }} />
-            Task 4 — Global Deployment Security
-          </div>
-          <h1 style={{
-            fontFamily: "'Syne', sans-serif",
-            fontSize: 'clamp(28px,4vw,44px)', fontWeight: 900,
-            color: '#F0EDE8', letterSpacing: '-1.5px', margin: '0 0 12px',
-          }}>
-            2026 Security Standards
-          </h1>
-          <p style={{ fontSize: 16, color: '#8892A4', maxWidth: 560, margin: '0 auto' }}>
-            Cloudflare Turnstile bot protection + WebAuthn/Passkeys passwordless biometric login
-          </p>
-        </motion.div>
+    <div style={{ minHeight: '100vh', background: '#0A0D14', paddingTop: 64 }}>
+      <SovereignPageHeader
+        badge="Task 4 — Global Deployment Security · FIDO2 · Cloudflare"
+        badgeColor="#2A9DE8"
+        title={
+          <>
+            <span style={{ color: 'var(--white)' }}>2026 Security</span>
+            {' '}
+            <span style={{ background: 'linear-gradient(135deg,#1A6DB5,#39bff6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+              Standards
+            </span>
+          </>
+        }
+        subtitle="Cloudflare Turnstile CAPTCHA-free bot protection + WebAuthn FIDO2 Passkeys — the 2026 gold standard in zero-friction, phishing-proof authentication."
+        stats={[
+          { label: 'Bot Blocked',  value: '99.9%',   icon: '🛡️', color: '#f59e0b' },
+          { label: 'Auth Method',  value: 'FIDO2',   icon: '🔐', color: '#2A9DE8' },
+          { label: 'Friction',     value: 'Zero',    icon: '✅', color: '#10b981' },
+          { label: 'CF PoPs',      value: '300+',    icon: '🌍', color: '#a78bfa' },
+        ]}
+        actions={[
+          { label: '← Back', href: '/' },
+          { label: '📊 App Demo', href: '/app/demo', primary: true },
+        ]}
+        compact
+      />
+      <div style={{ maxWidth: 900, margin: '0 auto', padding: '32px clamp(18px,5vw,64px) 80px' }}>
 
         <div style={{
           display: 'grid',

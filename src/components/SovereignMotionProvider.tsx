@@ -278,10 +278,11 @@ export default function SovereignMotionProvider({ children }: SovereignMotionPro
 
     // Emit jurisdiction event to Orchestrator
     Orchestrator.emit('JURISDICTION_DETECTED', {
+      ip: '0.0.0.0',
       country: detected.country,
       region: detected.lang,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      locale: navigator.language,
+      regime: 'generic' as const,
+      riskLevel: 'low' as const,
     })
   }, [])
 

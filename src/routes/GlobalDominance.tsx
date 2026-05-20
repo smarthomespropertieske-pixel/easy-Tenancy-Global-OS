@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { BRAND } from '../lib/tokens'
+import SovereignPageHeader from '../components/SovereignPageHeader'
 
 // ── Types ─────────────────────────────────────────────────────────
 interface Metric { label: string; value: string; delta: string; icon: string }
@@ -150,6 +151,14 @@ function PillarCard({ pillar, active, onClick }: { pillar: Pillar; active: boole
 }
 
 // ── Main Component ────────────────────────────────────────────────
+const GD_SECTIONS = [
+  { id: 'gd-trinity',      label: 'Holy Trinity' },
+  { id: 'gd-strategy',     label: 'Strategy Intel' },
+  { id: 'gd-architecture', label: 'Architecture' },
+  { id: 'gd-security',     label: 'Security' },
+  { id: 'gd-cta',          label: 'Get Started' },
+]
+
 export default function GlobalDominance() {
   const [activePillar, setActivePillar] = useState('google')
   const [activeTab, setActiveTab] = useState<'gap' | 'revenue' | 'roadmap'>('gap')
@@ -157,50 +166,31 @@ export default function GlobalDominance() {
   return (
     <main style={{ paddingTop: 64, background: 'var(--ink)', minHeight: '100vh', color: 'var(--white)' }}>
 
-      {/* ── Hero ── */}
-      <section style={{ padding: '96px 0 64px', position: 'relative', overflow: 'hidden' }}>
-        <div className="orb orb-blue"   style={{ width: 800, height: 800, top: -300, left: -200, opacity: 0.12 }} />
-        <div className="orb orb-teal"   style={{ width: 500, height: 500, bottom: -100, right: -100, opacity: 0.10 }} />
-        <div className="orb orb-purple" style={{ width: 300, height: 300, top: '40%',  right: '25%',  opacity: 0.08 }} />
-
-        {/* grid */}
-        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', backgroundImage: 'linear-gradient(rgba(26,109,181,0.06) 1px,transparent 1px),linear-gradient(90deg,rgba(26,109,181,0.06) 1px,transparent 1px)', backgroundSize: '60px 60px', maskImage: 'radial-gradient(ellipse at center, black 0%, transparent 70%)' }} />
-
-        <div className="inner tc" style={{ position: 'relative', zIndex: 2 }}>
-          <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 18px', marginBottom: 28, background: 'rgba(26,109,181,0.12)', border: '1px solid rgba(26,109,181,0.35)', borderRadius: 999, fontSize: 12, fontWeight: 700, color: BRAND.blueLight, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: BRAND.blueLight, animation: 'pulse 2s infinite' }} />
-            Global Dominance Blueprint 2026
-          </motion.div>
-
-          <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} style={{ fontSize: 'clamp(38px,6vw,80px)', fontWeight: 900, lineHeight: 1.06, letterSpacing: '-2.5px', marginBottom: 24, fontFamily: 'var(--font-head)' }}>
-            The Holy Trinity<br />
-            <span style={{ background: `linear-gradient(135deg, ${BRAND.blue} 0%, ${BRAND.blueLight} 50%, ${BRAND.teal} 100%)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+      {/* ── Sovereign Page Header ── */}
+      <SovereignPageHeader
+        badge="Global Dominance Blueprint 2026"
+        badgeColor={BRAND.blueLight}
+        title={
+          <>
+            The Holy Trinity
+            <br />
+            <span style={{ background: `linear-gradient(135deg,${BRAND.blue} 0%,${BRAND.blueLight} 50%,${BRAND.teal} 100%)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
               Google · Salesforce · Meta
             </span>
-          </motion.h1>
-
-          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} style={{ fontSize: 'clamp(16px,2vw,21px)', color: 'var(--mist)', maxWidth: 680, margin: '0 auto 40px', lineHeight: 1.65 }}>
-            easyTenancy becomes the world's #1 Super-App by fusing Gemini 3 Ultra intelligence, Salesforce Einstein predictive CRM, and Meta's Spatial Social ecosystem into a single property OS.
-          </motion.p>
-
-          {/* Live metrics bar */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 16, maxWidth: 900, margin: '0 auto' }}>
-            {LIVE_METRICS.map((m, i) => (
-              <div key={i} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: '16px 12px', textAlign: 'center' }}>
-                <div style={{ fontSize: 22, marginBottom: 4 }}>{m.icon}</div>
-                <div style={{ fontSize: 'clamp(18px,2.5vw,26px)', fontWeight: 900, color: BRAND.blueLight, fontFamily: 'var(--font-head)', letterSpacing: '-0.5px' }}>
-                  <AnimCounter target={m.value} />
-                </div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--white)', marginBottom: 2 }}>{m.label}</div>
-                <div style={{ fontSize: 10, color: 'var(--mist)' }}>{m.delta}</div>
-              </div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
+          </>
+        }
+        subtitle="easyTenancy becomes the world's #1 Super-App by fusing Gemini 3 Ultra, Salesforce Einstein, and Meta's Spatial Social ecosystem into a single sovereign property OS."
+        stats={LIVE_METRICS.map(m => ({ label: m.label, value: m.value, icon: m.icon, color: BRAND.blueLight }))}
+        actions={[
+          { label: '📊 App Demo', href: '/app/demo' },
+          { label: '⚡ Predictive OS', href: '/predictive-os' },
+          { label: '🚀 Start Free', href: '/?demoTenantId=demo-001', primary: true },
+        ]}
+        sections={GD_SECTIONS}
+      />
 
       {/* ── Holy Trinity Pillars ── */}
-      <section style={{ padding: '80px 0' }}>
+      <section id="gd-trinity" style={{ padding: '80px 0' }}>
         <div className="inner">
           <div className="tc" style={{ marginBottom: 48 }}>
             <h2 className="sec-title">The Holy Trinity Architecture</h2>
@@ -215,7 +205,7 @@ export default function GlobalDominance() {
       </section>
 
       {/* ── Tabbed Analysis ── */}
-      <section style={{ padding: '80px 0', background: 'rgba(255,255,255,0.02)' }}>
+      <section id="gd-strategy" style={{ padding: '80px 0', background: 'rgba(255,255,255,0.02)' }}>
         <div className="inner">
           <div className="tc" style={{ marginBottom: 40 }}>
             <h2 className="sec-title">Strategy Intelligence</h2>
@@ -315,7 +305,7 @@ export default function GlobalDominance() {
       </section>
 
       {/* ── System Architecture ── */}
-      <section style={{ padding: '80px 0' }}>
+      <section id="gd-architecture" style={{ padding: '80px 0' }}>
         <div className="inner">
           <div className="tc" style={{ marginBottom: 48 }}>
             <h2 className="sec-title">System Architecture</h2>

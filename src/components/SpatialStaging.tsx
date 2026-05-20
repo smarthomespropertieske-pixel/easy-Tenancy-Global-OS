@@ -129,10 +129,12 @@ export default function SpatialStaging({ propertyData = {} }: { propertyData?: R
     setHapticActive(true)
     playDealSound()
     Orchestrator.emit('SUCCESS_FEE_CAPTURED', {
-      tenantId: 'staging-demo',
-      fee: 4200,
+      feeId: `fee-staging-${Date.now()}`,
+      contractId: `contract-staging-demo`,
+      amount: 4200,
       currency: 'USD',
-      property: propertyData.name ?? 'Demo Property',
+      feePercentage: 0.5,
+      portfolioCountry: 'UK',
     })
     setTimeout(() => setHapticActive(false), 900)
   }, [propertyData.name])
