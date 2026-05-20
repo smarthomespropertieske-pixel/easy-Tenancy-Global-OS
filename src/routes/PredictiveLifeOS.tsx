@@ -288,6 +288,10 @@ export default function PredictiveLifeOS() {
           {/* ── CRM INTELLIGENCE ── */}
           {activeSection === 'crm' && (
             <motion.div key="crm" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}>
+              <div style={{ marginBottom: 24 }}>
+                <h2 style={{ fontSize: 'clamp(20px,3vw,28px)', fontWeight: 900, fontFamily: 'var(--font-head)', letterSpacing: '-0.6px', margin: '0 0 6px' }}>Einstein CRM Intelligence</h2>
+                <p style={{ fontSize: 14, color: 'var(--mist)', margin: 0 }}>Salesforce Data Cloud unifies all tenant, landlord, and lead records — Einstein Prediction Builder scores every contact automatically.</p>
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 28 }}>
                 {[['52,400', 'Managed Contacts', BRAND.blue], ['94.2%', 'Einstein Score Avg', BRAND.blueLight], ['3.2×', 'Lead Conversion Lift', BRAND.teal]].map(([v,l,c], i) => (
                   <div key={i} style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${c}33`, borderRadius: 16, padding: '16px 20px', textAlign: 'center' }}>
@@ -327,6 +331,10 @@ export default function PredictiveLifeOS() {
           {/* ── SPATIAL GRAPH ── */}
           {activeSection === 'spatial' && (
             <motion.div key="spatial" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}>
+              <div style={{ marginBottom: 24 }}>
+                <h2 style={{ fontSize: 'clamp(20px,3vw,28px)', fontWeight: 900, fontFamily: 'var(--font-head)', letterSpacing: '-0.6px', margin: '0 0 6px' }}>Spatial Social Ecosystem</h2>
+                <p style={{ fontSize: 14, color: 'var(--mist)', margin: 0 }}>Meta Presence Platform + WebXR AR creates a live spatial layer over every property. Powered by Llama 4 on-device for zero-latency intelligence.</p>
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'start' }}>
                 <div>
                   <h3 style={{ fontSize: 18, fontWeight: 800, fontFamily: 'var(--font-head)', marginBottom: 8 }}>Live Architecture Graph</h3>
@@ -362,6 +370,10 @@ export default function PredictiveLifeOS() {
           {/* ── ACTIONABLE INTELLIGENCE (Einstein GPT churn + retention) ── */}
           {activeSection === 'intelligence' && (
             <motion.div key="intelligence" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}>
+              <div style={{ marginBottom: 24 }}>
+                <h2 style={{ fontSize: 'clamp(20px,3vw,28px)', fontWeight: 900, fontFamily: 'var(--font-head)', letterSpacing: '-0.6px', margin: '0 0 6px' }}>Actionable Intelligence</h2>
+                <p style={{ fontSize: 14, color: 'var(--mist)', margin: 0 }}>Einstein GPT churn prediction + Agentforce retention sequences — identifies at-risk tenants and auto-launches interventions before they leave.</p>
+              </div>
               <Suspense fallback={<PanelLoader label="Loading Actionable Intelligence…" />}>
                 <ActionableIntelligence filterSegment="all" maxCards={5} />
               </Suspense>

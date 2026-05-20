@@ -155,7 +155,7 @@ const GD_SECTIONS = [
   { id: 'gd-trinity',      label: 'Holy Trinity' },
   { id: 'gd-strategy',     label: 'Strategy Intel' },
   { id: 'gd-architecture', label: 'Architecture' },
-  { id: 'gd-security',     label: 'Security' },
+  { id: 'gd-ux-flow',      label: 'UX Journey' },
   { id: 'gd-cta',          label: 'Get Started' },
 ]
 
@@ -331,7 +331,7 @@ export default function GlobalDominance() {
       </section>
 
       {/* ── UX Flow ── */}
-      <section style={{ padding: '80px 0', background: 'rgba(255,255,255,0.02)' }}>
+      <section id="gd-ux-flow" style={{ padding: '80px 0', background: 'rgba(255,255,255,0.02)' }}>
         <div className="inner">
           <div className="tc" style={{ marginBottom: 48 }}>
             <h2 className="sec-title">User Experience Flow</h2>
@@ -363,7 +363,7 @@ export default function GlobalDominance() {
       </section>
 
       {/* ── CTA ── */}
-      <section style={{ padding: '80px 0 120px', textAlign: 'center' }}>
+      <section id="gd-cta" style={{ padding: '80px 0 120px', textAlign: 'center' }}>
         <div className="inner">
           <motion.div initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} style={{ background: `linear-gradient(135deg, ${BRAND.blue}22, ${BRAND.teal}22)`, border: `1px solid ${BRAND.blue}44`, borderRadius: 32, padding: 'clamp(40px,6vw,80px)' }}>
             <h2 style={{ fontSize: 'clamp(28px,4vw,52px)', fontWeight: 900, fontFamily: 'var(--font-head)', letterSpacing: '-1.5px', marginBottom: 16 }}>
