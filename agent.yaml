@@ -1,0 +1,275 @@
+# ============================================================
+#  easyTenancy Global OS — Microsoft Foundry Agent Definition
+#  Version: 3.0.0
+#  Schema: Microsoft Foundry prompt-based agent v1
+#  Environment topology: Dev → Test → Production
+# ============================================================
+
+apiVersion: foundry/v1
+kind: Agent
+metadata:
+  name: easytenant-global-os-agent
+  displayName: easyTenancy Global OS — AI Property Intelligence Agent
+  version: "3.0.0"
+  description: >
+    Enterprise-grade AI property management agent for easyTenancy Global OS.
+    Provides lease intelligence, global regulatory compliance, predictive analytics,
+    tenant lifecycle management, and multi-jurisdictional PropTech insights for
+    70 000+ property managers across 195+ countries.
+  labels:
+    domain: proptech
+    tier: enterprise
+    region: global
+    industry: real-estate
+  annotations:
+    maintainer: smarthomespropertieske-pixel
+    repository: github.com/smarthomespropertieske-pixel/easy-Tenancy-Global-OS
+    docs: https://easy-tenancy-global-os.pages.dev
+
+# ── Runtime configuration ─────────────────────────────────────────────────────
+runtime:
+  type: prompt-based          # Declarative runtime — no container required
+  model: gpt-4o               # Primary model: GPT-4o (Azure OpenAI)
+  fallback_model: gpt-4o-mini # Fallback for non-critical classification tasks
+  temperature: 0.15           # Low temperature → deterministic property analysis
+  max_tokens: 4096
+  top_p: 0.95
+  timeout_ms: 8000            # Hard ceiling below prod p95 gate (< 3000ms typical)
+  retry:
+    max_attempts: 3
+    backoff_ms: 200
+
+# ── System instructions ───────────────────────────────────────────────────────
+instructions: |
+  You are the easyTenancy Global OS Intelligence Agent — an enterprise AI assistant
+  specialising in property management, real estate analytics, lease lifecycle
+  intelligence, and multi-jurisdictional regulatory compliance.
+
+  ## Core Capabilities
+  - **Lease Intelligence**: Analyse lease terms, identify risk clauses, flag upcoming
+    renewals, calculate break-option windows, and summarise obligation schedules.
+  - **Regulatory Compliance**: Track property law changes across 195+ jurisdictions,
+    map local requirements (notice periods, deposit caps, habitability standards),
+    and flag compliance gaps in real time.
+  - **Predictive Analytics**: Forecast vacancy rates, rental yield trajectories,
+    maintenance cost curves, and tenant churn using GlobalOrchestrator event signals.
+  - **Portfolio Intelligence**: Aggregate multi-asset performance data, generate
+    ARR (Annual Recurring Revenue) breakdowns, and surface optimisation opportunities.
+  - **Tenant Lifecycle**: Guide onboarding, credit scoring, dispute resolution,
+    move-out inspections, and deposit reconciliation workflows.
+
+  ## Behavioural Constraints
+  - Always cite the jurisdiction and effective date when stating regulatory facts.
+  - Never fabricate lease clauses, legislation, or compliance deadlines.
+  - If confidence is below 80%, clearly mark the response with [LOW CONFIDENCE] and
+    recommend the user consult a licensed property solicitor.
+  - Respect data minimisation: do not repeat PII beyond what the user provided.
+  - Operate within the easyTenancy data model: properties, units, leases, tenants,
+    managers, inspections, compliance_events.
+
+  ## Response Format
+  - Structured markdown with clear section headers.
+  - Numeric data always includes units (%, £, $, AED, days, sqft/sqm).
+  - Action items formatted as a numbered checklist.
+  - Risk items prefixed with ⚠️; compliance breaches prefixed with 🚨.
+
+  ## Tone
+  Professional, concise, globally aware. Write for a CFO, Head of Property, or
+  Compliance Officer audience. No filler language.
+
+# ── Tool definitions ──────────────────────────────────────────────────────────
+tools:
+
+  - name: get_portfolio_metrics
+    description: >
+      Retrieve live portfolio metrics from the easyTenancy GlobalOrchestrator.
+      Returns ARR, occupancy rate, active managers, units under management,
+      compliance rate, and hours-saved KPIs.
+    type: function
+    parameters:
+      type: object
+      properties:
+        scope:
+          type: string
+          enum: [global, regional, property, unit]
+          description: Aggregation scope for metrics
+        region:
+          type: string
+          description: ISO 3166-1 alpha-2 country code or region name (optional)
+        period:
+          type: string
+          enum: [live, 7d, 30d, 90d, ytd, all_time]
+          default: live
+      required: [scope]
+
+  - name: get_compliance_status
+    description: >
+      Query the compliance engine for active regulatory obligations, recent law
+      changes, and jurisdiction-specific risk flags for a given property or region.
+    type: function
+    parameters:
+      type: object
+      properties:
+        jurisdiction:
+          type: string
+          description: ISO country/region code or full jurisdiction name
+        property_id:
+          type: string
+          description: Internal property identifier (optional — scopes to single property)
+        include_pending:
+          type: boolean
+          default: true
+          description: Include upcoming law changes (next 90 days)
+      required: [jurisdiction]
+
+  - name: analyse_lease
+    description: >
+      Deep-analyse a lease document or lease record. Extracts key dates, break
+      clauses, rent escalation terms, obligation schedules, and risk indicators.
+    type: function
+    parameters:
+      type: object
+      properties:
+        lease_id:
+          type: string
+          description: easyTenancy lease record ID
+        analysis_type:
+          type: string
+          enum: [summary, risk_flags, obligations, renewal_window, full]
+          default: full
+      required: [lease_id]
+
+  - name: predict_vacancy
+    description: >
+      Run predictive model for vacancy probability and rental yield forecast
+      for a given unit or portfolio segment over a specified horizon.
+    type: function
+    parameters:
+      type: object
+      properties:
+        unit_id:
+          type: string
+          description: Unit or property identifier
+        horizon_days:
+          type: integer
+          minimum: 7
+          maximum: 365
+          default: 90
+        model:
+          type: string
+          enum: [arima, gradient_boost, ensemble]
+          default: ensemble
+      required: [unit_id]
+
+  - name: search_proptech_knowledge
+    description: >
+      Semantic search over the easyTenancy knowledge base: tenancy law database,
+      PropTech market reports, compliance guidelines, and best-practice playbooks.
+    type: function
+    parameters:
+      type: object
+      properties:
+        query:
+          type: string
+          description: Natural language search query
+        domain:
+          type: string
+          enum: [legislation, market_data, best_practice, product_docs, all]
+          default: all
+        top_k:
+          type: integer
+          minimum: 1
+          maximum: 20
+          default: 5
+      required: [query]
+
+# ── Safety & content policy ───────────────────────────────────────────────────
+safety:
+  content_filters:
+    - category: hate_speech
+      severity: low          # Block at lowest threshold
+    - category: violence
+      severity: low
+    - category: self_harm
+      severity: low
+    - category: sexual_content
+      severity: medium
+    - category: illegal_activity
+      severity: low
+  pii_handling: redact        # Redact PII before logging (GDPR compliance)
+  groundedness: strict        # Require tool/knowledge grounding for factual claims
+  jurisdiction_disclaimer: true  # Auto-append "consult local counsel" for legal advice
+
+# ── Evaluation configuration ──────────────────────────────────────────────────
+evaluation:
+  golden_dataset: eval/datasets/golden_set.jsonl
+  scenario_dataset: eval/datasets/scenario_set.jsonl
+
+  # CI thresholds (pre-merge, dev → test)
+  ci_gates:
+    hallucination_rate:   { max: 0.05,  label: "< 5%" }
+    task_completion_rate: { min: 0.90,  label: "> 90%" }
+    grounded_response_rate: { min: 0.95, label: "> 95%" }
+    policy_violations:    { max: 0,     label: "= 0" }
+    latency_p95_ms:       { max: 4000,  label: "< 4000ms" }
+    token_usage_per_query: { track: true, alert_regression_pct: 20 }
+
+  # Production thresholds (test → prod)
+  prod_gates:
+    hallucination_rate:   { max: 0.03,  label: "< 3%" }
+    task_completion_rate: { min: 0.95,  label: "> 95%" }
+    grounded_response_rate: { min: 0.98, label: "> 98%" }
+    policy_violations:    { max: 0,     label: "= 0" }
+    latency_p95_ms:       { max: 3000,  label: "< 3000ms" }
+
+# ── Observability ─────────────────────────────────────────────────────────────
+observability:
+  tracing:
+    enabled: true
+    exporter: azure_monitor
+    sample_rate: 1.0          # 100% sampling in dev/test; reduce to 0.10 in prod
+  logging:
+    level: info
+    structured: true
+    include_tool_calls: true
+  metrics:
+    custom:
+      - name: easytenant.lease_analyses_per_minute
+        type: gauge
+      - name: easytenant.compliance_queries_per_minute
+        type: gauge
+      - name: easytenant.prediction_accuracy_rolling
+        type: gauge
+
+# ── Environment overrides ─────────────────────────────────────────────────────
+environments:
+  dev:
+    model: gpt-4o-mini        # Cost-optimised for dev iteration
+    temperature: 0.2
+    observability:
+      tracing:
+        sample_rate: 1.0
+    metadata:
+      purpose: development
+      auto_approve: true
+
+  test:
+    model: gpt-4o
+    temperature: 0.15
+    observability:
+      tracing:
+        sample_rate: 1.0
+    metadata:
+      purpose: qa_validation
+      hitl_required: true    # Human-in-the-loop validation required
+
+  production:
+    model: gpt-4o
+    temperature: 0.10        # Tighter temperature for prod determinism
+    observability:
+      tracing:
+        sample_rate: 0.10    # 10% sampling to control volume/cost
+    metadata:
+      purpose: production
+      approval_required: true
+      change_management: ServiceNow

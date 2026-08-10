@@ -1,0 +1,8 @@
+{
+  "name": "easyTenancy Global OS",
+  "description": "The #1 Global Real Estate Operating System for leasing, rent collection, maintenance, and compliance across 120+ countries.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

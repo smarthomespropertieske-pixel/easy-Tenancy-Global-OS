@@ -1,0 +1,65 @@
+# ============================================================
+#  easyTenancy Global OS — Python Evaluation Dependencies
+#  Microsoft Foundry CI/CD Pipeline
+#  Version: 3.0.0
+#
+#  Install: pip install -r requirements-eval.txt
+#
+#  Usage:
+#    CI environment  : pip install -r requirements-eval.txt
+#    Local dev       : pip install -r requirements-eval.txt
+#    Azure Pipelines : pip install --quiet -r requirements-eval.txt
+# ============================================================
+
+# ── Microsoft Foundry / Azure AI ──────────────────────────────
+# Agent lifecycle management (deploy, promote, rollback)
+azure-ai-projects>=1.0.0b9
+
+# Evaluation SDK (groundedness, relevance, coherence evaluators)
+azure-ai-evaluation>=1.0.0b6
+
+# Azure identity (OIDC workload identity federation + DefaultAzureCredential)
+azure-identity>=1.16.0
+
+# Azure core (shared HTTP pipeline for all azure-* packages)
+azure-core>=1.30.0
+
+# ── YAML processing ────────────────────────────────────────────
+# Required for agent.yaml parsing in validate/deploy scripts
+PyYAML>=6.0.1
+
+# ── Static analysis ────────────────────────────────────────────
+# Fast Python linter (replaces flake8 + isort + pyupgrade)
+ruff>=0.4.0
+
+# Security scanner (OWASP top-10 patterns in Python)
+bandit>=1.7.8
+
+# ── Testing ────────────────────────────────────────────────────
+# Test framework
+pytest>=8.0.0
+
+# Async test support (for tool integration tests)
+pytest-asyncio>=0.23.0
+
+# HTTP mocking for tool tests
+pytest-httpx>=0.30.0
+responses>=0.25.0
+
+# Coverage reporting
+pytest-cov>=5.0.0
+
+# ── Data handling ──────────────────────────────────────────────
+# JSONL processing and data validation
+jsonlines>=4.0.0
+
+# ── HTTP client (for smoke tests + tool integration) ───────────
+httpx>=0.27.0
+requests>=2.32.0
+
+# ── Utilities ──────────────────────────────────────────────────
+# Rich terminal output for evaluation reports
+rich>=13.7.0
+
+# Type hints backport
+typing-extensions>=4.11.0

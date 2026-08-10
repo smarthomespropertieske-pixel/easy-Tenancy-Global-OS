@@ -1,0 +1,64 @@
+{
+  "entities": {
+    "users": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "lastLogin": { "type": "string" }
+      },
+      "required": ["uid", "email"]
+    },
+    "properties": {
+      "title": "Property",
+      "description": "Real estate property asset listing",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "location": { "type": "string" },
+        "price": { "type": "number" },
+        "yieldRate": { "type": "number" },
+        "occupancy": { "type": "number" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "title"]
+    },
+    "user_preferences": {
+      "title": "User Preferences",
+      "description": "User saved settings and estate portfolio items",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "savedProperties": { "type": "array" },
+        "savedSimulations": { "type": "array" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId"]
+    },
+    "property_audits": {
+      "title": "Property Audit Events",
+      "description": "Audit trail records for property management events and compliance logs",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "uid": { "type": "string" },
+        "propertyId": { "type": "string" },
+        "propertyName": { "type": "string" },
+        "action": { "type": "string" },
+        "category": { "type": "string" },
+        "severity": { "type": "string" },
+        "details": { "type": "string" },
+        "actor": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["uid", "propertyId", "action"]
+    }
+  }
+}

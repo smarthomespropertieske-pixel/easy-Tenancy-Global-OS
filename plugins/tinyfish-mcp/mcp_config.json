@@ -1,0 +1,51 @@
+{
+  "mcpServers": {
+    "easy-tenancy-cloudflare": {
+      "command": "node",
+      "args": [
+        "plugins/tinyfish-mcp/server.js"
+      ],
+      "env": {
+        "CLOUDFLARE_API_TOKEN": "${CLOUDFLARE_API_TOKEN}",
+        "CLOUDFLARE_ACCOUNT_ID": "${CLOUDFLARE_ACCOUNT_ID}",
+        "ENVIRONMENT": "production"
+      }
+    }
+  },
+  "resources": {
+    "cloudflare-pages": {
+      "type": "deployment-service",
+      "provider": "cloudflare",
+      "config": {
+        "projectName": "easy-tenancy-global-os-prod",
+        "accountId": "${CLOUDFLARE_ACCOUNT_ID}",
+        "apiToken": "${CLOUDFLARE_API_TOKEN}",
+        "environments": ["production", "staging", "development"]
+      }
+    },
+    "workers-ai": {
+      "type": "ai-service",
+      "provider": "cloudflare-workers-ai",
+      "binding": "AI",
+      "models": [
+        "@cf/stabilityai/stable-diffusion-xl-base-1.0",
+        "@cf/mistral/mistral-7b-instruct-v0.2"
+      ]
+    }
+  },
+  "integrations": {
+    "github": {
+      "enabled": true,
+      "workflows": [
+        ".github/workflows/deploy-cloudflare.yml"
+      ]
+    },
+    "observability": {
+      "enabled": true,
+      "cloudflareLogsPush": {
+        "enabled": true,
+        "dataset": "http_requests"
+      }
+    }
+  }
+}

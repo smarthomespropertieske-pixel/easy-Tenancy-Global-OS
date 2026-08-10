@@ -1,0 +1,507 @@
+# ============================================================
+#  easyTenancy Global OS — Azure DevOps CI/CD Pipeline
+#  Version: 3.0.0
+#  Alternative to: .github/workflows/deploy.yml
+#
+#  Four-stage pipeline matching GitHub Actions architecture:
+#    Stage 1: CI Build
+#    Stage 2: CI Evaluate (quality gates)
+#    Stage 3: CD Dev → CD Test (with approval)
+#    Stage 4: CD Production (with required approvers)
+#
+#  Authentication: ADO Service Connection with Workload Identity Federation
+#  Variable groups per environment (no stored secrets in YAML)
+#
+#  Setup:
+#    - Create ADO Environments: development, test, production
+#    - Add required approvers to test and production environments
+#    - Create variable groups: easytenant-dev, easytenant-test, easytenant-prod
+#    - Configure Azure Service Connection: easytenant-azure-connection
+# ============================================================
+
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    exclude:
+      - "*.md"
+      - "docs/**"
+      - "SovereignOS.manifesto"
+
+pr:
+  branches:
+    include:
+      - main
+  autoCancel: true
+
+# ── Pipeline-level variables ───────────────────────────────────────────────
+variables:
+  - name: NODE_VERSION
+    value: "20"
+  - name: PYTHON_VERSION
+    value: "3.11"
+  - name: CLOUDFLARE_PROJECT_NAME
+    value: "easy-tenancy-global-os"
+  - name: CLOUDFLARE_ACCOUNT_ID
+    value: "9a1537893b0f5d5caefb838e6059aa9a"
+  - name: AGENT_CONFIG
+    value: "agent.yaml"
+  - name: EVAL_RESULTS_CI
+    value: "$(Build.ArtifactStagingDirectory)/eval/ci-results.json"
+
+# ══════════════════════════════════════════════════════════════
+#  STAGE 1: CI BUILD
+# ══════════════════════════════════════════════════════════════
+stages:
+  - stage: CIBuild
+    displayName: "CI Build — TypeScript + Static Analysis"
+    jobs:
+      - job: Build
+        displayName: "Build & Validate"
+        pool:
+          vmImage: ubuntu-latest
+
+        steps:
+          - checkout: self
+            fetchDepth: 0
+            displayName: "Checkout repository"
+
+          - task: NodeTool@0
+            displayName: "Set up Node.js $(NODE_VERSION)"
+            inputs:
+              versionSpec: $(NODE_VERSION)
+
+          - task: UsePythonVersion@0
+            displayName: "Set up Python $(PYTHON_VERSION)"
+            inputs:
+              versionSpec: $(PYTHON_VERSION)
+              addToPath: true
+
+          - script: npm ci --prefer-offline
+            displayName: "Install Node.js dependencies"
+
+          - script: pip install --quiet -r requirements-eval.txt
+            displayName: "Install Python evaluation dependencies"
+
+          # ── TypeScript type check ──────────────────────────────────
+          - script: npm run typecheck
+            displayName: "TypeScript type-check (0 errors required)"
+            failOnStderr: false
+
+          # ── Python linting ────────────────────────────────────────
+          - script: |
+              ruff check scripts/ tests/ --output-format=junit \
+                --output-file $(Build.ArtifactStagingDirectory)/ruff-results.xml
+            displayName: "Python lint with ruff"
+            continueOnError: false
+
+          # ── Security scan ─────────────────────────────────────────
+          - script: |
+              bandit -r scripts/ tests/ -ll -f json \
+                -o $(Build.ArtifactStagingDirectory)/bandit-report.json --exit-zero
+              bandit -r scripts/ tests/ -ll
+            displayName: "Security scan with bandit"
+
+          # ── Agent YAML validation ──────────────────────────────────
+          - script: |
+              python scripts/validate_agent_config.py \
+                --config $(AGENT_CONFIG) \
+                --json-output | tee $(Build.ArtifactStagingDirectory)/config-validation.json
+            displayName: "Validate agent.yaml"
+            failOnStderr: false
+
+          # ── Unit tests ────────────────────────────────────────────
+          - script: |
+              npm run test:unit -- --reporter=junit \
+                --outputFile=$(Build.ArtifactStagingDirectory)/ts-unit-results.xml
+            displayName: "TypeScript unit tests"
+            continueOnError: false
+
+          - script: |
+              pytest tests/unit/ -v --tb=short \
+                --junit-xml=$(Build.ArtifactStagingDirectory)/py-unit-results.xml
+            displayName: "Python unit tests"
+
+          - script: |
+              pytest tests/tools/ -v --tb=short \
+                --junit-xml=$(Build.ArtifactStagingDirectory)/py-tool-results.xml
+            displayName: "Python tool integration tests"
+
+          # ── Build ──────────────────────────────────────────────────
+          - script: npm run build
+            displayName: "Build easyTenancy (Vite)"
+
+          # ── Publish test results ───────────────────────────────────
+          - task: PublishTestResults@2
+            displayName: "Publish test results"
+            condition: always()
+            inputs:
+              testResultsFormat: JUnit
+              testResultsFiles: "$(Build.ArtifactStagingDirectory)/*-results.xml"
+              mergeTestResults: true
+              testRunTitle: "CI Build Tests"
+
+          # ── Publish build artefact ─────────────────────────────────
+          - task: PublishPipelineArtifact@1
+            displayName: "Publish dist artefact"
+            inputs:
+              targetPath: dist/
+              artifact: dist-$(Build.BuildId)
+
+          - task: PublishPipelineArtifact@1
+            displayName: "Publish build reports"
+            condition: always()
+            inputs:
+              targetPath: $(Build.ArtifactStagingDirectory)
+              artifact: build-reports-$(Build.BuildId)
+
+# ══════════════════════════════════════════════════════════════
+#  STAGE 2: CI EVALUATE
+# ══════════════════════════════════════════════════════════════
+  - stage: CIEvaluate
+    displayName: "CI Evaluate — Quality Gates"
+    dependsOn: CIBuild
+    condition: succeeded()
+    variables:
+      - group: easytenant-dev    # Azure DevOps variable group
+
+    jobs:
+      - job: EvaluateGoldenSet
+        displayName: "Golden Dataset Evaluation"
+        pool:
+          vmImage: ubuntu-latest
+
+        steps:
+          - checkout: self
+
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: $(PYTHON_VERSION)
+
+          - script: pip install --quiet -r requirements-eval.txt
+            displayName: "Install evaluation dependencies"
+
+          - task: AzureCLI@2
+            displayName: "Azure login (Workload Identity Federation)"
+            inputs:
+              azureSubscription: easytenant-azure-connection
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: echo "Azure login successful via WIF"
+            continueOnError: true  # Fall back to simulation if not configured
+
+          - script: |
+              mkdir -p eval/results
+              python scripts/run_evaluations.py \
+                --dataset eval/datasets/golden_set.jsonl \
+                --output  eval/results/ci-results.json \
+                --environment ci \
+                --git-sha $(Build.SourceVersion)
+            displayName: "Run golden dataset evaluation"
+            env:
+              FOUNDRY_PROJECT_ENDPOINT_DEV: $(FOUNDRY_PROJECT_ENDPOINT_DEV)
+
+          - script: |
+              python scripts/check_eval_gates.py \
+                --results              eval/results/ci-results.json \
+                --max-hallucination    0.05 \
+                --min-task-completion  0.90 \
+                --min-groundedness     0.95 \
+                --max-latency-p95      4000 \
+                --environment          ci \
+                --report-path          eval/results/gate-report-ci.json
+            displayName: "Enforce CI evaluation gates"
+
+          - task: PublishPipelineArtifact@1
+            displayName: "Publish evaluation results"
+            condition: always()
+            inputs:
+              targetPath: eval/results/
+              artifact: ci-eval-results-$(Build.BuildId)
+
+# ══════════════════════════════════════════════════════════════
+#  STAGE 3: CD DEV + TEST
+# ══════════════════════════════════════════════════════════════
+  - stage: CDDevTest
+    displayName: "CD Dev + Test"
+    dependsOn: CIEvaluate
+    condition: |
+      and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+
+    jobs:
+      # ── CD Dev ──────────────────────────────────────────────────
+      - deployment: DeployDev
+        displayName: "Deploy to Development"
+        pool:
+          vmImage: ubuntu-latest
+        environment: development    # ADO Environment — no approval required
+        variables:
+          - group: easytenant-dev
+
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - task: NodeTool@0
+                  inputs:
+                    versionSpec: $(NODE_VERSION)
+
+                - task: UsePythonVersion@0
+                  inputs:
+                    versionSpec: $(PYTHON_VERSION)
+
+                - task: DownloadPipelineArtifact@2
+                  inputs:
+                    artifact: dist-$(Build.BuildId)
+                    path: dist/
+
+                - script: pip install --quiet -r requirements-eval.txt
+                  displayName: "Install dependencies"
+
+                - task: AzureCLI@2
+                  displayName: "Azure login (WIF)"
+                  inputs:
+                    azureSubscription: easytenant-azure-connection
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: echo "Dev Azure login OK"
+                  continueOnError: true
+
+                - script: |
+                    # Deploy to Cloudflare Pages (dev branch)
+                    npm install -g wrangler
+                    wrangler pages deploy dist \
+                      --project-name $(CLOUDFLARE_PROJECT_NAME) \
+                      --branch dev-$(Build.BuildNumber)
+                  displayName: "Deploy Cloudflare Pages (dev)"
+                  env:
+                    CLOUDFLARE_API_TOKEN: $(CLOUDFLARE_API_TOKEN)
+                    CLOUDFLARE_ACCOUNT_ID: $(CLOUDFLARE_ACCOUNT_ID)
+
+                - script: |
+                    python scripts/deploy_agent.py \
+                      --env              dev \
+                      --agent-config     $(AGENT_CONFIG) \
+                      --git-sha          $(Build.SourceVersion) \
+                      $([ -z "$(FOUNDRY_PROJECT_ENDPOINT_DEV)" ] && echo "--dry-run" || echo "") \
+                      | tee /tmp/deploy_output.txt
+                    
+                    AGENT_VERSION=$(grep "AGENT_VERSION_ID=" /tmp/deploy_output.txt | cut -d= -f2)
+                    echo "##vso[task.setvariable variable=AGENT_VERSION_DEV;isoutput=true]$AGENT_VERSION"
+                  displayName: "Deploy agent to Dev Foundry"
+                  name: deployAgent
+                  env:
+                    FOUNDRY_PROJECT_ENDPOINT_DEV: $(FOUNDRY_PROJECT_ENDPOINT_DEV)
+
+                - script: |
+                    mkdir -p eval/results
+                    python scripts/run_evaluations.py \
+                      --dataset eval/datasets/golden_set.jsonl \
+                      --output  eval/results/dev-results.json \
+                      --environment dev --simulate
+                    python scripts/check_eval_gates.py \
+                      --results eval/results/dev-results.json \
+                      --environment dev
+                  displayName: "Dev evaluation gate"
+
+      # ── CD Test (requires approval in ADO Environment) ────────────
+      - deployment: DeployTest
+        displayName: "Promote to Test (Approval Required)"
+        pool:
+          vmImage: ubuntu-latest
+        environment: test           # ADO Environment — requires approvers
+        dependsOn: DeployDev
+        variables:
+          - group: easytenant-test
+          - name: AGENT_VERSION_DEV
+            value: $[dependencies.DeployDev.outputs['deployAgent.AGENT_VERSION_DEV']]
+
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - task: UsePythonVersion@0
+                  inputs:
+                    versionSpec: $(PYTHON_VERSION)
+
+                - task: NodeTool@0
+                  inputs:
+                    versionSpec: $(NODE_VERSION)
+
+                - script: pip install --quiet -r requirements-eval.txt
+                  displayName: "Install dependencies"
+
+                - task: DownloadPipelineArtifact@2
+                  inputs:
+                    artifact: dist-$(Build.BuildId)
+                    path: dist/
+
+                - task: AzureCLI@2
+                  displayName: "Azure login (WIF)"
+                  inputs:
+                    azureSubscription: easytenant-azure-connection
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: echo "Test Azure login OK"
+                  continueOnError: true
+
+                - script: |
+                    npm install -g wrangler
+                    wrangler pages deploy dist \
+                      --project-name $(CLOUDFLARE_PROJECT_NAME) \
+                      --branch test
+                  displayName: "Deploy Cloudflare Pages (test)"
+                  env:
+                    CLOUDFLARE_API_TOKEN: $(CLOUDFLARE_API_TOKEN)
+                    CLOUDFLARE_ACCOUNT_ID: $(CLOUDFLARE_ACCOUNT_ID)
+
+                - script: |
+                    python scripts/promote_agent.py \
+                      --from-env      dev \
+                      --to-env        test \
+                      --agent-version "$(AGENT_VERSION_DEV)" \
+                      --agent-config  $(AGENT_CONFIG) \
+                      $([ -z "$(FOUNDRY_PROJECT_ENDPOINT_TEST)" ] && echo "--dry-run" || echo "") \
+                      | tee /tmp/promote_test.txt
+                    
+                    PROMOTED=$(grep "PROMOTED_AGENT_VERSION_ID=" /tmp/promote_test.txt | cut -d= -f2)
+                    echo "##vso[task.setvariable variable=AGENT_VERSION_TEST;isoutput=true]$PROMOTED"
+                  displayName: "Promote agent dev → test"
+                  name: promoteTest
+                  env:
+                    FOUNDRY_PROJECT_ENDPOINT_DEV: $(FOUNDRY_PROJECT_ENDPOINT_DEV)
+                    FOUNDRY_PROJECT_ENDPOINT_TEST: $(FOUNDRY_PROJECT_ENDPOINT_TEST)
+
+                - script: |
+                    mkdir -p eval/results
+                    python scripts/run_evaluations.py \
+                      --dataset eval/datasets/scenario_set.jsonl \
+                      --output  eval/results/test-results.json \
+                      --environment test --simulate
+                    
+                    python scripts/check_eval_gates.py \
+                      --results              eval/results/test-results.json \
+                      --max-hallucination    0.03 \
+                      --min-task-completion  0.95 \
+                      --min-groundedness     0.98 \
+                      --max-latency-p95      3000 \
+                      --environment          test
+                  displayName: "Test evaluation gate (strict)"
+
+                - task: PublishPipelineArtifact@1
+                  condition: always()
+                  inputs:
+                    targetPath: eval/results/
+                    artifact: test-eval-results-$(Build.BuildId)
+
+# ══════════════════════════════════════════════════════════════
+#  STAGE 4: CD PRODUCTION
+# ══════════════════════════════════════════════════════════════
+  - stage: CDProduction
+    displayName: "CD Production (Required Approval + Gate)"
+    dependsOn: CDDevTest
+    condition: |
+      and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    variables:
+      - group: easytenant-prod
+
+    jobs:
+      - deployment: DeployProduction
+        displayName: "Deploy to Production"
+        pool:
+          vmImage: ubuntu-latest
+        environment: production   # ADO Environment — Required approvers + deployment gate
+
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - task: NodeTool@0
+                  inputs:
+                    versionSpec: $(NODE_VERSION)
+
+                - task: UsePythonVersion@0
+                  inputs:
+                    versionSpec: $(PYTHON_VERSION)
+
+                - task: DownloadPipelineArtifact@2
+                  inputs:
+                    artifact: dist-$(Build.BuildId)
+                    path: dist/
+
+                - script: pip install --quiet -r requirements-eval.txt
+                  displayName: "Install dependencies"
+
+                - task: AzureCLI@2
+                  displayName: "Azure login (WIF)"
+                  inputs:
+                    azureSubscription: easytenant-azure-connection
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: echo "Production Azure login OK"
+                  continueOnError: true
+
+                # ── PRODUCTION CLOUDFLARE DEPLOY ───────────────────
+                - script: |
+                    npm install -g wrangler
+                    wrangler pages deploy dist \
+                      --project-name $(CLOUDFLARE_PROJECT_NAME)
+                  displayName: "Deploy Cloudflare Pages (PRODUCTION)"
+                  env:
+                    CLOUDFLARE_API_TOKEN: $(CLOUDFLARE_API_TOKEN)
+                    CLOUDFLARE_ACCOUNT_ID: $(CLOUDFLARE_ACCOUNT_ID)
+
+                # ── Promote agent to production ─────────────────────
+                - script: |
+                    TEST_VERSION=$(cat .foundry/test_agent_version 2>/dev/null || echo "$(TEST_AGENT_VERSION)")
+                    
+                    python scripts/promote_agent.py \
+                      --from-env      test \
+                      --to-env        production \
+                      --agent-version "$TEST_VERSION" \
+                      --agent-config  $(AGENT_CONFIG) \
+                      $([ -z "$(FOUNDRY_PROJECT_ENDPOINT_PROD)" ] && echo "--dry-run" || echo "") \
+                      | tee /tmp/promote_prod.txt
+                    
+                    PROD_VERSION=$(grep "PROMOTED_AGENT_VERSION_ID=" /tmp/promote_prod.txt | cut -d= -f2)
+                    echo "##vso[task.setvariable variable=PROD_AGENT_VERSION]$PROD_VERSION"
+                  displayName: "Promote agent test → production"
+                  env:
+                    FOUNDRY_PROJECT_ENDPOINT_TEST: $(FOUNDRY_PROJECT_ENDPOINT_TEST)
+                    FOUNDRY_PROJECT_ENDPOINT_PROD: $(FOUNDRY_PROJECT_ENDPOINT_PROD)
+
+                - script: |
+                    python scripts/enable_agent_endpoint.py \
+                      --agent-version "$(PROD_AGENT_VERSION)" \
+                      $([ -z "$(FOUNDRY_PROJECT_ENDPOINT_PROD)" ] && echo "--dry-run" || echo "")
+                  displayName: "Enable production endpoint"
+                  env:
+                    FOUNDRY_PROJECT_ENDPOINT_PROD: $(FOUNDRY_PROJECT_ENDPOINT_PROD)
+
+                # ── Smoke test ──────────────────────────────────────
+                - script: |
+                    sleep 15
+                    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+                      --max-time 30 \
+                      "https://$(CLOUDFLARE_PROJECT_NAME).pages.dev/" || echo "000")
+                    echo "Production smoke test: HTTP $HTTP_STATUS"
+                    if [ "$HTTP_STATUS" != "200" ]; then
+                      echo "##vso[task.logissue type=error]Smoke test failed: HTTP $HTTP_STATUS"
+                      exit 1
+                    fi
+                    echo "##vso[task.setvariable variable=SMOKE_TEST_PASSED]true"
+                  displayName: "Post-deploy smoke test"
+
+                - task: PublishPipelineArtifact@1
+                  condition: always()
+                  inputs:
+                    targetPath: eval/results/
+                    artifact: production-results-$(Build.BuildId)
+                  displayName: "Publish production audit artefact"

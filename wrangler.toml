@@ -1,0 +1,74 @@
+name = "easy-tenancy-global-os"
+type = "javascript"
+compatibility_date = "2026-04-22"
+
+# ── Cloudflare Pages ──────────────────────────────────────────────
+# Pages build output from Vite
+pages_build_output_dir = "./dist"
+
+# ── Compatibility flags ───────────────────────────────────────────
+compatibility_flags = ["nodejs_compat"]
+
+# ── Workers AI binding ────────────────────────────────────────────
+# Fallback for Novita FLUX.1 image generation
+[ai]
+binding = "AI"
+
+# ── Observability ─────────────────────────────────────────────────
+# CF Logs for Pages Functions runtime
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+
+# ── Environment-specific configuration ────────────────────────────
+
+[env.production]
+name = "easy-tenancy-global-os-prod"
+routes = [
+  { pattern = "easytenant.global/*", zone_id = "production_zone_id" }
+]
+
+[env.production.ai]
+binding = "AI"
+
+[env.staging]
+name = "easy-tenancy-global-os-staging"
+routes = [
+  { pattern = "staging.easytenant.global/*", zone_id = "staging_zone_id" }
+]
+
+[env.development]
+name = "easy-tenancy-global-os-dev"
+
+# ────────────────────────────────────────────────────────────────────
+# Optional: Uncomment and configure after setup
+# ────────────────────────────────────────────────────────────────────
+
+# ── Cloudflare D1 (SQLite) ────────────────────────────────────────
+# npx wrangler d1 create easy-tenancy-production
+#
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "easy-tenancy-production"
+# database_id = "YOUR_DATABASE_ID"
+# preview_id = "YOUR_PREVIEW_ID"
+
+# ── Cloudflare KV (session / cache) ───────────────────────────────
+# npx wrangler kv:namespace create EASY_TENANCY_KV
+#
+# [[kv_namespaces]]
+# binding = "KV"
+# id = "YOUR_KV_ID"
+# preview_id = "YOUR_KV_PREVIEW_ID"
+
+# ── Cloudflare R2 (asset storage) ─────────────────────────────────
+# npx wrangler r2 bucket create easy-tenancy-assets
+#
+# [[r2_buckets]]
+# binding = "R2"
+# bucket_name = "easy-tenancy-assets"
+
+# ── Rate limiting (Cloudflare managed) ────────────────────────────
+# [[rate_limiting_namespaces]]
+# binding = "RATE_LIMIT"
+# namespace_id = "YOUR_NAMESPACE_ID"

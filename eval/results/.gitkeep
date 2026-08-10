@@ -1,0 +1,4 @@
+# eval/results/ — evaluation output directory
+# This directory receives CI/CD run results (JSON files).
+# .gitkeep ensures git tracks the directory.
+# Actual result files are excluded via .gitignore.

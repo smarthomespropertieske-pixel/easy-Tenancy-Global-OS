@@ -1,0 +1,117 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 3. Primitive Definition
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    
+    function incoming() {
+      return request.resource.data;
+    }
+    
+    function existing() {
+      return resource.data;
+    }
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    // User Entity Validation
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email']) &&
+             data.uid == request.auth.uid &&
+             data.uid is string && data.uid.size() <= 128 &&
+             data.email is string && data.email.size() <= 256 &&
+             data.get('displayName', '') is string && data.get('displayName', '').size() <= 128 &&
+             data.get('photoURL', '') is string && data.get('photoURL', '').size() <= 512 &&
+             data.get('lastLogin', '') is string && data.get('lastLogin', '').size() <= 64;
+    }
+
+    // Properties Entity Validation
+    function isValidProperty(data) {
+      return data.keys().hasAll(['id', 'title']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.title is string && data.title.size() <= 256 &&
+             (data.get('location', '') is string && data.get('location', '').size() <= 256) &&
+             (data.get('price', 0) is number) &&
+             (data.get('yieldRate', 0) is number) &&
+             (data.get('occupancy', 0) is number) &&
+             (data.get('status', '') is string && data.get('status', '').size() <= 64) &&
+             (data.get('createdAt', '') is string && data.get('createdAt', '').size() <= 64);
+    }
+
+    // User Preferences Entity Validation
+    function isValidUserPreferences(data) {
+      return data.keys().hasAll(['userId']) &&
+             data.userId == request.auth.uid &&
+             data.userId is string && data.userId.size() <= 128 &&
+             (data.get('savedProperties', []) is list && data.get('savedProperties', []).size() <= 100) &&
+             (data.get('savedSimulations', []) is list && data.get('savedSimulations', []).size() <= 100) &&
+             (data.get('updatedAt', '') is string && data.get('updatedAt', '').size() <= 64);
+    }
+
+    // Property Audits Entity Validation
+    function isValidPropertyAudit(data) {
+      return data.keys().hasAll(['uid', 'propertyId', 'action']) &&
+             data.uid == request.auth.uid &&
+             data.uid is string && data.uid.size() <= 128 &&
+             data.propertyId is string && data.propertyId.size() <= 128 &&
+             data.action is string && data.action.size() <= 128 &&
+             (data.get('id', '') is string && data.get('id', '').size() <= 128) &&
+             (data.get('propertyName', '') is string && data.get('propertyName', '').size() <= 256) &&
+             (data.get('category', '') is string && data.get('category', '').size() <= 128) &&
+             (data.get('severity', '') is string && data.get('severity', '').size() <= 64) &&
+             (data.get('details', '') is string && data.get('details', '').size() <= 1024) &&
+             (data.get('actor', '') is string && data.get('actor', '').size() <= 256) &&
+             (data.get('timestamp', '') is string && data.get('timestamp', '').size() <= 64) &&
+             (data.get('createdAt', 0) is number);
+    }
+
+    match /users/{userId} {
+      allow get: if isVerifiedUser() && isValidId(userId) && request.auth.uid == userId;
+      allow list: if isVerifiedUser() && resource.data.uid == request.auth.uid;
+      
+      allow create: if isVerifiedUser() && isValidId(userId) && userId == request.auth.uid && isValidUser(incoming());
+      allow update: if isVerifiedUser() && isValidId(userId) && userId == request.auth.uid && isValidUser(incoming()) && incoming().uid == existing().uid;
+      allow delete: if false; // Users shouldn't be deleted directly via SDK without cleanup
+    }
+
+    match /properties/{propertyId} {
+      allow get: if isVerifiedUser() && isValidId(propertyId);
+      allow list: if isVerifiedUser(); // Assume properties are public to authenticated users
+      
+      allow create: if isVerifiedUser() && isValidId(propertyId) && isValidProperty(incoming());
+      allow update: if isVerifiedUser() && isValidId(propertyId) && isValidProperty(incoming());
+      allow delete: if false;
+    }
+
+    match /user_preferences/{docId} {
+      allow get: if isVerifiedUser() && isValidId(docId) && resource.data.userId == request.auth.uid;
+      allow list: if isVerifiedUser() && resource.data.userId == request.auth.uid;
+      
+      allow create: if isVerifiedUser() && isValidId(docId) && isValidUserPreferences(incoming());
+      allow update: if isVerifiedUser() && isValidId(docId) && isValidUserPreferences(incoming()) && incoming().userId == existing().userId;
+      allow delete: if false;
+    }
+
+    match /property_audits/{auditId} {
+      allow get: if isVerifiedUser() && isValidId(auditId) && resource.data.uid == request.auth.uid;
+      allow list: if isVerifiedUser() && resource.data.uid == request.auth.uid;
+      
+      allow create: if isVerifiedUser() && isValidId(auditId) && isValidPropertyAudit(incoming());
+      allow update: if false; // Audits are immutable
+      allow delete: if false;
+    }
+  }
+}

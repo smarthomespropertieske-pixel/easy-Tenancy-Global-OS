@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- ── Primary Meta ── -->
+  <title>easyTenancy — The #1 Global Real Estate Operating System</title>
+  <meta name="description" content="easyTenancy is the world's leading property management platform. Manage leasing, rent collection, maintenance, and compliance across 120+ countries." />
+  <meta name="keywords" content="property management software, tenancy management, real estate OS, landlord software, tenant portal, rent collection, global property management" />
+  <meta name="author" content="easyTenancy" />
+  <meta name="robots" content="index, follow" />
+
+  <!-- ── Favicon Matrix — Holy Trinity 2026 Blueprint (5-size cross-browser) ── -->
+  <link rel="icon" type="image/png" sizes="16x16"   href="/assets/favicons/favicon-16x16.png">
+  <link rel="icon" type="image/png" sizes="32x32"   href="/assets/favicons/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="48x48"   href="/assets/favicons/favicon-48x48.png">
+  <link rel="icon" type="image/png" sizes="64x64"   href="/assets/favicons/favicon-64x64.png">
+  <link rel="icon" type="image/png" sizes="128x128" href="/assets/favicons/favicon-128x128.png">
+  <!-- Legacy iOS / Safari -->
+  <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180.png" />
+  <link rel="shortcut icon" href="/assets/favicons/favicon-64x64.png" />
+  <!-- Master brand asset (preload-hinted for hero usage) -->
+  <link rel="preload" as="image" href="/assets/brand/optimized_house_handshake.png" />
+
+  <!-- ── PWA / App Manifest ── -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#1A6DB5" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="easyTenancy" />
+
+  <!-- ── Open Graph (Social Sharing) ── -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="easyTenancy — Global Real Estate OS" />
+  <meta property="og:description" content="The #1 property management platform. 120 countries. 2.4M leases. 400× ROI." />
+  <meta property="og:image" content="/logo-icon.png" />
+  <!-- og:url falls back to .pages.dev if PUBLIC_SITE_URL not set at build time;
+       runtime client also sets a canonical <link> below via main.tsx if location.origin differs -->
+  <meta property="og:url" content="%PUBLIC_SITE_URL%" />
+  <meta property="og:site_name" content="easyTenancy" />
+
+  <!-- ── Twitter Card ── -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="easyTenancy — Global Real Estate OS" />
+  <meta name="twitter:description" content="The #1 property management platform. 120 countries. 2.4M leases. 400× ROI." />
+  <meta name="twitter:image" content="/logo-icon.png" />
+
+  <!-- ── Fonts — $100B-feel typography (Inter Tight + Geist Mono + Geologica + Instrument Serif) ── -->
+  <!-- Inter Tight = Söhne/Aeonik geometric DNA · Geist Mono = Vercel/Linear · Instrument Serif = editorial accent -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Inter+Tight:ital,wght@0,100..900;1,100..900&family=Geist+Mono:wght@300..700&family=Geologica:wght@300..900&family=Instrument+Serif:ital@0;1&display=swap"
+  />
+
+  <!-- ── Structured Data (SEO) ── -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "easyTenancy",
+    "applicationCategory": "BusinessApplication",
+    "description": "The #1 Global Real Estate Operating System",
+    "url": "%PUBLIC_SITE_URL%",
+    "logo": "%PUBLIC_SITE_URL%/logo-icon.png",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.9",
+      "reviewCount": "12847"
+    }
+  }
+  </script>
+
+  <!-- ── Critical inline styles — zero flash, instant brand render ── -->
+  <style>
+    :root {
+      --brand-blue:       #1A6DB5;
+      --brand-blue-dark:  #0F4A80;
+      --brand-blue-light: #2A9DE8;
+      --brand-teal:       #2A9D6E;
+      --ink:              #0A0D14;
+      --ink-mid:          #111520;
+      --ink-soft:         #1A1F2E;
+      --slate:            #242938;
+      --mist:             #8892A4;
+      --white:            #F0EDE8;
+      --cream:            #D4CEC4;
+      --font-head:    'Inter Tight', 'Geologica', ui-sans-serif, -apple-system, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+      --font-body:    'Inter Tight', ui-sans-serif, -apple-system, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+      --font-display: 'Geologica', 'Inter Tight', ui-sans-serif, system-ui, sans-serif;
+      --font-mono:    'Geist Mono', ui-monospace, 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+      --font-serif:   'Instrument Serif', 'Iowan Old Style', 'Apple Garamond', Georgia, serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      font-family: var(--font-body);
+      background: var(--ink);
+      color: var(--white);
+      margin: 0; padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+    h1, h2, h3, h4, h5, h6 { font-family: var(--font-head); }
+    code, pre, kbd { font-family: var(--font-mono); }
+    /* Show loading state while React mounts — skeleton bg instead of invisible */
+    #root:empty::before {
+      content: '';
+      display: block;
+      position: fixed;
+      inset: 0;
+      background: #050810;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>

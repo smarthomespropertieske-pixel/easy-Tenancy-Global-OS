@@ -1,0 +1,239 @@
+╔══════════════════════════════════════════════════════════════════════════╗
+║            SOVEREIGN ECONOMIC OS — GLOBAL HEGEMONY 2.0                  ║
+║            easyTenancy IEE Launch Manifesto · 2026                      ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+CLASSIFICATION: STRATEGIC · CONFIDENTIAL
+AUTHORED:       Chief Architect, Sovereign Economic OS
+DATE:           2026-05-18
+VERSION:        2.0.0
+STATUS:         ACTIVE — All 14 components live · Sandbox ij80b6urpxjutmzzy4dri
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PART I — THE SOVEREIGN THESIS
+──────────────────────────────
+
+The global property management market is a $4.2T fragmented chaos.
+120 jurisdictions. Zero interoperability. Legacy SaaS born in 2005.
+
+easyTenancy is not a product. It is a Sovereign Economic OS.
+
+A distributed intelligence layer that converts raw property data into
+autonomous revenue — perpetually, globally, without human bottlenecks.
+
+The goal is not market share. The goal is market definition.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PART II — THE HOLY TRINITY STACK
+──────────────────────────────────
+
+┌─────────────┬──────────────────────────────────────────────────────────┐
+│  PILLAR      │  FUNCTION                                                │
+├─────────────┼──────────────────────────────────────────────────────────┤
+│  🧠 GOOGLE   │  Gemini 2.5 Pro: Real-time reasoning engine              │
+│              │  Maps JS API: Spatial context for every property lead     │
+│              │  Vertex AI: Training Einstein churn models globally       │
+│              │  Google Workspace: Tenant communication automation        │
+├─────────────┼──────────────────────────────────────────────────────────┤
+│  ☁️ SALESFORCE│  Agentforce: Autonomous negotiation agents               │
+│              │  Einstein GPT: Churn prediction scores (0-100)            │
+│              │  Revenue Cloud: Success-fee billing automation            │
+│              │  Slack: Landlord-agent communication hub                  │
+├─────────────┼──────────────────────────────────────────────────────────┤
+│  👁️ META      │  Presence Platform SDK: Immersive 3D walkthroughs        │
+│              │  WebXR: Browser-native VR property tours                  │
+│              │  Movement Tracking: Spatial interaction analytics         │
+│              │  Horizon Worlds: Metaverse property showrooms             │
+└─────────────┴──────────────────────────────────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PART III — THE AUTONOMOUS REVENUE ENGINE
+──────────────────────────────────────────
+
+5-stage pipeline. Zero human intervention required for standard renewals.
+
+  DETECT ──→ DRAFT ──→ STAGE ──→ SIGN ──→ CAPTURE
+     │           │         │         │         │
+  Einstein    Gemini    Novita    WebAuthn  MetricsTicker
+  Score≥75   2.5 Pro  FLUX.1 AR  FIDO2     +$2.5% fee
+
+Stage Details:
+
+  1. DETECT  ActionableIntelligence monitors Einstein scores every 60s.
+             Any tenant with score ≥ 75 triggers CHURN_DETECTED event.
+             Agentforce Autonomous Negotiator is instantiated.
+             Target: <2s detection latency globally via CF D1 edge.
+
+  2. DRAFT   AICopilot receives AGENTFORCE_TRIGGER via Orchestrator bus.
+             Gemini 2.5 Pro (high-value) or 2.0 Flash (standard) drafts
+             a market-adjusted lease renewal proposal in <8s.
+             ROICalculator auto-generates 2026 market comps in parallel.
+
+  3. STAGE   SpatialStaging triggers Novita GPU pipeline.
+             FLUX.1-dev generates photorealistic AR walkthrough assets.
+             RadialMap enables WebXR "Teleportation Mode" transition
+             from 2D portfolio view → 3D immersive property tour.
+             Target: <45s render time for SDXL assets.
+
+  4. SIGN    WebAuthnLogin gates the proposal with FIDO2 biometrics.
+             Touch ID / Face ID / Windows Hello — no passwords.
+             Turnstile bot-protection ensures only humans can sign.
+             Smart contract signature logged with CF timestamp proof.
+
+  5. CAPTURE MetricsTicker logs SUCCESS_FEE_CAPTURED event.
+             2.5% success fee auto-invoiced via Salesforce Revenue Cloud.
+             HeroStateWidget updated with live portfolio metrics.
+             ARR growth curve advances toward $1.345B target.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PART IV — THE $1.345B ARR PATH
+────────────────────────────────
+
+Growth model: Logistic S-curve (STEEPNESS=0.22, MIDPOINT=Month 24)
+
+  Month 0-6:    $0 → $18M     (Product-market fit, UK + AE beachhead)
+  Month 6-12:   $18M → $89M   (EMEA expansion: 40 countries)
+  Month 12-18:  $89M → $285M  (APAC + US: Google Maps integration live)
+  Month 18-24:  $285M → $622M (Agentforce fully autonomous, 52K+ managers)
+  Month 24-30:  $622M → $980M (Meta WebXR tours: 10× conversion uplift)
+  Month 30-36:  $980M → $1.345B (Global #1: 120 countries, all regimes)
+
+Revenue Streams:
+  ├── SaaS subscription:    $120/unit/year × 892K units = $107M/year
+  ├── Success fees (2.5%):  $285M in facilitated deals/year
+  ├── Compliance modules:   $890/entity/year × 52K managers = $46M/year
+  ├── Novita AI renders:    $12/walkthrough × 8M renders/year = $96M/year
+  ├── Salesforce AppEx:     15% of SF Einstein contracts ($78M/year)
+  └── Meta Presence:        $890M in XR property transaction GMV
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PART V — SOVEREIGN SECURITY DOCTRINE
+───────────────────────────────────────
+
+Layer 1 — Network (Cloudflare):
+  • 300+ PoPs · Argo Smart Routing · Smart Placement
+  • TLS 1.3 + X25519Kyber768 (Post-Quantum KEM, active now)
+  • DDoS mitigation: 321 Tbps network capacity
+  • Bot Management: ML-based fingerprinting (Turnstile invisible)
+
+Layer 2 — Application (WebAuthn FIDO2):
+  • Passkeys replace passwords on all /app/* routes
+  • FIDO2 credentials: Touch ID, Face ID, Windows Hello, YubiKey
+  • No passwords transmitted or stored — ever
+  • Replay attack protection: challenge-response nonce per session
+
+Layer 3 — Data (Cloudflare D1 + PQ roadmap):
+  • D1 SQLite: globally distributed, sub-15ms reads at edge
+  • KV: session tokens, compliance cache, rate limiting
+  • R2: AR walkthrough assets, lease document storage
+  • PQ Roadmap: ES256 → ML-DSA-65 (FIPS 204) by 2027-Q1
+
+Layer 4 — Compliance (ComplianceEngine):
+  • IP Intelligence → jurisdiction detection (CF-IPCountry header)
+  • GDPR: DPA automation, Article 22 AI disclosure, cookie consent
+  • CCPA: DNSMI opt-out, 45-day DSRP response pipeline
+  • KES: ODPC registration, iTax API, M-Pesa audit trail
+  • PDPA/POPIA: purpose limitation, Information Officer workflow
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PART VI — GLOBAL DEPLOYMENT ARCHITECTURE
+──────────────────────────────────────────
+
+  Cloudflare Pages (edge CDN, 300+ PoPs)
+    └── React SPA (Vite + Hono + framer-motion)
+        └── GlobalOrchestrator.ts (pub/sub event bus)
+            ├── ActionableIntelligence  ← Salesforce Agentforce
+            ├── AICopilot               ← Gemini 2.5 Pro / 2.0 Flash
+            ├── AIFeed                  ← Real-time Cloudflare KV stream
+            ├── CompliancePanel         ← ComplianceEngine.ts rules
+            ├── FeatureMicroTours       ← Onboarding orchestration
+            ├── HeroStateWidget         ← Live portfolio snapshot
+            ├── MetricsTicker           ← Value-Capture Engine ($1.345B)
+            ├── Nav                     ← Route-aware navigation
+            ├── RadialMap               ← D3 force + WebXR portal
+            ├── ROICalculator           ← 2026 market-adjusted proposals
+            ├── SpatialStaging          ← Novita FLUX.1 AR pipeline
+            ├── TurnstileWidget         ← CF bot protection
+            ├── WebAuthnLogin           ← FIDO2 biometric gate
+            └── Logo                    ← Brand identity anchor
+
+  Cloudflare D1 (edge SQLite):
+    • tenants, leases, compliance_log, fee_events, ar_renders
+
+  Cloudflare KV (edge K/V):
+    • session tokens, jurisdiction cache, turnstile replay protection
+
+  Cloudflare R2 (object storage):
+    • AR walkthrough assets, lease documents, compliance certificates
+
+  API Routes (server.mjs / functions/):
+    • /api/ai/chat          → Gemini proxy (model selection logic)
+    • /api/ai/retention-email → Agentforce retention workflow
+    • /api/turnstile/verify → CF Turnstile server-side validation
+    • /api/orchestrator/events → SSE stream for real-time Orchestrator sync
+    • /api/compliance/jurisdiction → IP→regime detection
+    • /api/metrics/live     → Live KPI JSON endpoint
+    • /api/og               → Branded SVG OG image generation
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PART VII — 90-DAY LAUNCH SEQUENCE
+────────────────────────────────────
+
+  DAYS 1-30:   FOUNDATION
+    ✅ 14 components live (Sandbox ij80b6urpxjutmzzy4dri)
+    ✅ GlobalOrchestrator.ts event bus wired
+    ✅ ComplianceEngine.ts: GDPR/KES/CCPA/PDPA/POPIA
+    ✅ MetricsTicker Value-Capture Engine
+    ✅ Gemini 2.5 Pro integrated in AICopilot
+    ⬜ Cloudflare D1 production database provisioned
+    ⬜ Salesforce Agentforce sandbox connected
+    ⬜ Novita GPU pipeline production API key
+
+  DAYS 31-60:  ACTIVATION
+    ⬜ 100 beta property managers onboarded (UK + AE)
+    ⬜ First 10 autonomous renewals executed end-to-end
+    ⬜ $50K in success fees captured by ARR engine
+    ⬜ WebXR walkthroughs live for 3 showcase properties
+    ⬜ ODPC registration filed for Kenya operations
+
+  DAYS 61-90:  DOMINATION
+    ⬜ 1,000 managers onboarded across 12 countries
+    ⬜ $500K ARR milestone celebration (milestone toast)
+    ⬜ Salesforce AppExchange listing published
+    ⬜ Meta Presence SDK beta: first VR property tour
+    ⬜ Series A deck: $30M at $150M pre-money valuation
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PART VIII — THE SOVEREIGN DECLARATION
+───────────────────────────────────────
+
+We do not compete. We define the category.
+
+Property management has been a human problem since 3000 BCE (Mesopotamian
+clay tablet lease records). We are the first to make it a machine problem.
+
+The machine never sleeps. The machine knows every jurisdiction.
+The machine closes deals while the landlord is on holiday.
+The machine files KES tax returns at midnight.
+The machine generates AR walkthroughs without a photographer.
+
+This is not disruption. This is replacement.
+
+By 2028: $1.345B ARR. 52,400+ managers. 120 countries.
+         The world's property managed by one Sovereign OS.
+
+                    — Chief Architect, easyTenancy IEE
+                      2026-05-18
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  github.com/smarthomespropertieske-pixel/easy-Tenancy-Global-OS
+  sandbox: ij80b6urpxjutmzzy4dri · branch: main · status: LIVE ✅
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
