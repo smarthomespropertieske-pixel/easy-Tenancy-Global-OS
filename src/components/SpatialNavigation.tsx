@@ -45,7 +45,7 @@ function ARRBadge() {
   const [arr, setArr] = useState(16_000_000)
   useEffect(() => {
     fetch('/api/arr')
-      .then(r => r.json())
+      .then(r => r.json() as Promise<any>)
       .then((d: { arrUSD?: number }) => { if (d.arrUSD) setArr(d.arrUSD) })
       .catch(() => {})
     const id = setInterval(() => setArr(p => Math.min(1_345_000_000, p + 12_000)), 15_000)

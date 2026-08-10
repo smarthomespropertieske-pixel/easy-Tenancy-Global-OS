@@ -84,7 +84,7 @@ export function useCurrencyConversion(initialCurrency: CurrencyCode = 'USD'): Us
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`)
       }
-      const data = await response.json()
+      const data = await response.json() as any
       if (data && data.rates) {
         const mergedRates = { ...DEFAULT_RATES, ...data.rates }
         setRates(mergedRates)
@@ -98,7 +98,7 @@ export function useCurrencyConversion(initialCurrency: CurrencyCode = 'USD'): Us
       try {
         const res2 = await fetch('https://api.exchangerate-api.com/v4/latest/USD')
         if (res2.ok) {
-          const d2 = await res2.json()
+          const d2 = await res2.json() as any
           if (d2 && d2.rates) {
             setRates({ ...DEFAULT_RATES, ...d2.rates })
             setRateSource('LIVE')

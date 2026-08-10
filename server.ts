@@ -9,7 +9,7 @@ const app = new Hono()
 // Inject process.env into c.env so the CF Pages app works seamlessly
 app.use('*', async (c, next) => {
   if (!c.env) c.env = {}
-  Object.assign(c.env, process.env)
+  Object.assign(c.env as object, process.env)
   await next()
 })
 

@@ -14,6 +14,7 @@ interface TooltipData {
   name: string
   density: number
   yield: number
+  growth: number
   x: number
   y: number
 }
@@ -30,11 +31,11 @@ export default function D3GeographicalHeatmap() {
     const loadData = async () => {
       try {
         const response = await fetch('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson')
-        const data = await response.json()
+        const data = await response.json() as any
         if (!active) return
 
         // Generate synthetic metrics for the countries (approx 120+ supported countries)
-        const metrics = new Map<string, { density: number; yield: number }>()
+        const metrics = new Map<string, { density: number; yield: number; growth: number }>()
         const seed = (str: string) => {
           let h = 0;
           for (let i = 0; i < str.length; i++) h = Math.imul(31, h) + str.charCodeAt(i) | 0;
@@ -47,7 +48,8 @@ export default function D3GeographicalHeatmap() {
           if (s % 100 > 20) {
             metrics.set(f.properties.name, {
               density: Math.floor((s % 500) + 10), // properties count
-              yield: 3 + ((s % 80) / 10) // 3% to 11%
+              yield: 3 + ((s % 80) / 10), // 3% to 11%
+              growth: ((s % 100) / 10) - 2 // -2.0% to +7.9%
             })
           }
         })
@@ -59,7 +61,7 @@ export default function D3GeographicalHeatmap() {
       }
     }
 
-    const drawMap = (features: GeoFeature[], metrics: Map<string, { density: number; yield: number }>) => {
+    const drawMap = (features: GeoFeature[], metrics: Map<string, { density: number; yield: number; growth: number }>) => {
       if (!svgRef.current || !containerRef.current) return
       const svg = d3.select(svgRef.current)
       svg.selectAll("*").remove()
@@ -113,6 +115,7 @@ export default function D3GeographicalHeatmap() {
               name: d.properties.name,
               density: m.density,
               yield: m.yield,
+              growth: m.growth,
               x: event.clientX,
               y: event.clientY
             })
@@ -204,6 +207,12 @@ export default function D3GeographicalHeatmap() {
               <div className="flex items-center justify-between gap-4">
                 <span className="text-slate-400">Avg NOI Yield</span>
                 <span className="font-bold text-emerald-400">{tooltip.yield.toFixed(1)}%</span>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-slate-400">YoY Growth</span>
+                <span className={`font-bold ${tooltip.growth >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {tooltip.growth >= 0 ? '+' : ''}{tooltip.growth.toFixed(1)}%
+                </span>
               </div>
             </div>
           </motion.div>

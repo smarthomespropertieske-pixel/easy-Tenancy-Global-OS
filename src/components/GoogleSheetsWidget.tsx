@@ -33,7 +33,7 @@ export function GoogleSheetsWidget() {
         throw new Error(`Failed to fetch sheet: ${res.statusText}`);
       }
       
-      const json = await res.json();
+      const json = await res.json() as any;
       if (json.values && json.values.length > 1) {
         const parsedData = json.values.slice(1).map((row: string[]) => ({
           label: row[0] || 'Unknown',

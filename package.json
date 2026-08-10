@@ -6,7 +6,7 @@
     "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
     "preview": "vite preview --port 3000 --host 0.0.0.0",
-    "deploy": "npm run build && wrangler pages deploy dist --project-name webapp",
+    "deploy": "npm run build && wrangler pages deploy",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
     "clean-port": "fuser -k 3000/tcp 2>/dev/null || true",
     "test": "vitest run --reporter=verbose",
@@ -46,6 +46,7 @@
     "zod": "^3.25.28"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260810.1",
     "@firebase/eslint-plugin-security-rules": "^0.0.2",
     "@hono/node-server": "^2.0.12",
     "@testing-library/dom": "^10.4.1",

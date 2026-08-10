@@ -64,7 +64,7 @@ export default function AuthDashboard() {
       const res = await fetch('https://www.googleapis.com/drive/v3/files?q=mimeType="application/vnd.google-apps.spreadsheet"', {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await res.json();
+      const data = await res.json() as any;
       if (data.files) {
         setFiles(data.files);
       }
@@ -81,7 +81,7 @@ export default function AuthDashboard() {
       const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A1:F20`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await res.json();
+      const data = await res.json() as any;
       if (data.values) {
         setSheetsData(data.values);
       } else {
